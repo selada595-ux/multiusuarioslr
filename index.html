@@ -75,8 +75,8 @@
                 <input type="text" id="mandante" class="form-control form-control-sm" value="100" readonly>
             </div>
             <div class="sap-input-group">
-                <label class="form-label fw-bold small">Usuario</label>
-                <input type="text" id="userInput" class="form-control form-control-sm" placeholder="USUARIO" required autofocus>
+                <label class="form-label fw-bold small">Usuario o Correo</label>
+                <input type="text" id="userInput" class="form-control form-control-sm" placeholder="USUARIO O CORREO" required autofocus>
             </div>
             <div class="sap-input-group">
                 <label class="form-label fw-bold small">Contraseña</label>
@@ -89,7 +89,7 @@
                 </select>
             </div>
             <div id="loginError" class="alert alert-danger py-1 small d-none text-center mb-3">
-                Usuario o contraseña incorrectos. Cada encargado tiene su propio usuario y contraseña.
+                Usuario o contraseña incorrectos. Verifica tus credenciales.
             </div>
             <button type="submit" class="btn btn-success btn-sm w-100 py-2 fw-bold">Iniciar Sesión ➔</button>
         </form>
@@ -125,7 +125,7 @@
 
     <div class="container-fluid my-3">
 
-        <!-- VENTANA 0: PANEL POR ENCARGADO (SOLO VISIBLE PARA EL USUARIO MAESTRO) -->
+        <!-- VENTANA 0: PANEL POR ENCARGADO -->
         <div id="ventanaPanelEncargados" class="sap-window bg-white border mb-3 rounded shadow-sm d-none">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>👥 Panel de Actividad por Encargado</span>
@@ -136,7 +136,7 @@
             </div>
         </div>
 
-        <!-- VENTANA 1: CONFIGURACIÓN DE MAESTROS (NO VISIBLE PARA EL SUPERVISOR, SOLO INGRESA ENCARGADOS) -->
+        <!-- VENTANA 1: CONFIGURACIÓN DE MAESTROS -->
         <div id="ventanaMaestros" class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>📋 Maestro de Datos Globales</span>
@@ -172,14 +172,14 @@
             </div>
         </div>
 
-        <!-- VENTANA 2: REGISTRO DE MOVIMIENTOS (NO VISIBLE PARA EL SUPERVISOR, SOLO INGRESA ENCARGADOS) -->
+        <!-- VENTANA 2: REGISTRO DE MOVIMIENTOS -->
         <div id="ventanaRegistro" class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>📝 Registro de Producción Compartido</span>
                 <span>[Transacción /ZPROD/ENTRY]</span>
             </div>
             <div class="p-3">
-                <form id="formProd" class="row g-3">
+                <form id="formProd" class="row g-3" onsubmit="guardarRegistroProduccion(event)">
                     <div class="col-md-3">
                         <label class="form-label fw-bold small">Fecha Contabilización</label>
                         <input type="date" id="fecha" class="form-control form-control-sm" required>
@@ -419,46 +419,60 @@
     const auth = firebase.auth();
 
     // ==========================================
-    // USUARIOS DEL SISTEMA (MULTIUSUARIO)
-    // Edita este listado para cambiar los 6 encargados,
-    // sus usuarios y contraseñas de acceso.
+    // USUARIOS DEL SISTEMA (7 PERSONAS / MULTIUSUARIO)
     // ==========================================
     const usuariosValidos = [
-        { user: "RECI 1", pass: "LR001", nombre: "Encargado 1", esMaestro: false },
-        { user: "RECI 2", pass: "LR002", nombre: "Encargado 2", esMaestro: false },
-        { user: "RECI 3", pass: "LR003", nombre: "Encargado 3", esMaestro: false },
-        { user: "RECI 4", pass: "LR004", nombre: "Encargado 4", esMaestro: false },
-        { user: "RECI 5", pass: "LR005", nombre: "Encargado 5", esMaestro: false },
-        { user: "RECI 6", pass: "LR006", nombre: "Encargado 6", esMaestro: false },
-        // Usuario maestro: único que puede ver el Panel de Actividad por Encargado.
-        // Cambia el usuario/contraseña por unos que solo tú conozcas.
-        { user: "MAESTRO", pass: "MASTER2026", nombre: "Supervisor General", esMaestro: true }
+        { user: "RECI1@RECICLADORA.COM", pass: "LR001", nombre: "Encargado 1", esMaestro: false },
+        { user: "RECI2@RECICLADORA.COM", pass: "LR002", nombre: "Encargado 2", esMaestro: false },
+        { user: "RECI3@RECICLADORA.COM", pass: "LR003", nombre: "Encargado 3", esMaestro: false },
+        { user: "RECI4@RECICLADORA.COM", pass: "LR004", nombre: "Encargado 4", esMaestro: false },
+        { user: "RECI5@RECICLADORA.COM", pass: "LR005", nombre: "Encargado 5", esMaestro: false },
+        { user: "RECI6@RECICLADORA.COM", pass: "LR006", nombre: "Encargado 6", esMaestro: false },
+        { user: "MAESTRO@RECICLADORA.COM", pass: "MASTER2026", nombre: "Supervisor General", esMaestro: true }
     ];
 
     // SISTEMA DE AUTENTICACIÓN
     function handleLogin(e) {
         e.preventDefault();
-        const user = document.getElementById('userInput').value.trim().toUpperCase();
+        const userInput = document.getElementById('userInput').value.trim();
         const pass = document.getElementById('passInput').value;
 
-        const encontrado = usuariosValidos.find(u => u.user === user && u.pass === pass);
+        // Buscar si coincide con alguno de los 7 usuarios definidos localmente
+        const encontrado = usuariosValidos.find(u => u.user.toLowerCase() === userInput.toLowerCase() && u.pass === pass);
 
         if (encontrado) {
             const btn = e.target.querySelector('button[type="submit"]');
             if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
 
-            // Autenticación anónima con Firebase: necesaria para que las reglas
-            // de seguridad de Firestore solo permitan acceso a quien entró por la app.
-            auth.signInAnonymously().then(() => {
-                sessionStorage.setItem('sap_logged_in', 'true');
-                sessionStorage.setItem('sap_user', encontrado.user);
-                sessionStorage.setItem('sap_user_nombre', encontrado.nombre);
-                sessionStorage.setItem('sap_es_maestro', encontrado.esMaestro ? 'true' : 'false');
-                mostrarApp();
-            }).catch((error) => {
-                if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
-                alert("Error de conexión con la nube: " + error.message);
-            });
+            // Autenticación real con Firebase Authentication usando correo y contraseña simulados/fijos
+            auth.signInWithEmailAndPassword(encontrado.user, encontrado.pass)
+                .then(() => {
+                    sessionStorage.setItem('sap_logged_in', 'true');
+                    sessionStorage.setItem('sap_user', encontrado.user);
+                    sessionStorage.setItem('sap_user_nombre', encontrado.nombre);
+                    sessionStorage.setItem('sap_es_maestro', encontrado.esMaestro ? 'true' : 'false');
+                    mostrarApp();
+                })
+                .catch((error) => {
+                    // Si el usuario aún no existe en Firebase Authentication, lo creamos automáticamente al vuelo
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                        auth.createUserWithEmailAndPassword(encontrado.user, encontrado.pass)
+                            .then(() => {
+                                sessionStorage.setItem('sap_logged_in', 'true');
+                                sessionStorage.setItem('sap_user', encontrado.user);
+                                sessionStorage.setItem('sap_user_nombre', encontrado.nombre);
+                                sessionStorage.setItem('sap_es_maestro', encontrado.esMaestro ? 'true' : 'false');
+                                mostrarApp();
+                            })
+                            .catch(err => {
+                                if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
+                                alert("Error al registrar autenticación: " + err.message);
+                            });
+                    } else {
+                        if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
+                        document.getElementById('loginError').classList.remove('d-none');
+                    }
+                });
         } else {
             document.getElementById('loginError').classList.remove('d-none');
         }
@@ -471,8 +485,6 @@
         app.classList.add('d-flex');
         document.getElementById('lblUsuarioLogueado').innerText = "Usuario: " + sessionStorage.getItem('sap_user_nombre');
 
-        // Solo el usuario maestro puede ver el Panel de Actividad por Encargado.
-        // El supervisor NO ingresa datos, solo supervisa: se ocultan los formularios de captura.
         const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
         document.getElementById('ventanaPanelEncargados').classList.toggle('d-none', !esMaestro);
         document.getElementById('ventanaMaestros').classList.toggle('d-none', esMaestro);
@@ -490,24 +502,14 @@
     }
 
     window.onload = function() {
-        // Espera a que Firebase confirme el estado de autenticación (persiste entre recargas)
-        // antes de mostrar la app, para evitar pantallazos de error de permisos.
         auth.onAuthStateChanged((user) => {
-            if (sessionStorage.getItem('sap_logged_in') === 'true') {
-                if (user) {
-                    mostrarApp();
-                } else {
-                    // La sesión de Firebase se perdió (ej. caché borrada): re-autentica antes de continuar.
-                    auth.signInAnonymously().then(mostrarApp).catch(() => {
-                        sessionStorage.clear();
-                        location.reload();
-                    });
-                }
+            if (sessionStorage.getItem('sap_logged_in') === 'true' && user) {
+                mostrarApp();
             }
         });
     };
 
-    // --- LÓGICA DEL SISTEMA DE PRODUCCIÓN CON FIREBASE ---
+    // --- LÓGICA DEL SISTEMA DE PRODUCCIÓN ---
     let catalogos = {
         operarios: ["BRICEIDI", "MARIA", "JUAN", "ALIOSKA", "WALTER", "RANDOLFO"],
         trabajos: ["PROYECTOS", "COMPACTADOS", "PREPARANDO MATERIAL", "LIMPIANDO", "CORTANDO", "OTROS"],
@@ -516,8 +518,6 @@
     let registros = [];
     let miGraficaBarras = null;
     let miGraficaPastel = null;
-    // El supervisor puede hacer clic en cada tarjeta para cambiar de encargado a encargado.
-    // null = ver todos los encargados a la vez.
     let filtroEncargadoActivo = null;
 
     function obtenerRegistrosVista() {
@@ -529,7 +529,7 @@
 
     function seleccionarEncargado(nombre) {
         const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
-        if (!esMaestro) return; // Solo el supervisor puede cambiar el filtro
+        if (!esMaestro) return;
         filtroEncargadoActivo = (filtroEncargadoActivo === nombre) ? null : nombre;
         renderizarTodo();
     }
@@ -545,8 +545,6 @@
             agregarFilaMaterial();
         }
 
-        // ESCUCHADORES EN TIEMPO REAL DE FIREBASE (ONSNAPSHOT)
-        // Todos los encargados que ingresen ven los mismos datos al instante.
         db.collection("configuracion").doc("catalogos").onSnapshot((doc) => {
             if (doc.exists) {
                 catalogos = doc.data();
@@ -633,421 +631,263 @@
         });
     }
 
-    function verificarYResetearDatos() {
-        const passwordInput = prompt("🔒 Ingrese la contraseña para vaciar la base de datos de la nube:");
-        if (passwordInput === null) return;
-        if (passwordInput === "LR123") {
-            db.collection("registros_produccion").get().then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    doc.ref.delete();
-                });
-                alert("Base de datos reiniciada con éxito.");
+    function agregarFilaMaterial() {
+        const contenedor = document.getElementById('contenedorMaterialesDinamicos');
+        const filaId = 'fila_' + Date.now() + Math.random().toString(36).substr(2, 5);
+        
+        let opcionesMats = '';
+        catalogos.materiales.forEach(mat => {
+            opcionesMats += `<option value="${mat}">${mat}</option>`;
+        });
+
+        const htmlFila = `
+            <div class="row g-2 align-items-center mb-2 fila-material-item" id="${filaId}">
+                <div class="col-md-6">
+                    <select class="form-select form-select-sm select-material-dinamico" required>
+                        ${opcionesMats}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <input type="number" step="any" class="form-control form-control-sm input-cantidad-dinamica" placeholder="Cantidad / Peso" required>
+                </div>
+                <div class="col-md-1 text-end">
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="document.getElementById('${filaId}').remove()">✕</button>
+                </div>
+            </div>
+        `;
+        contenedor.insertAdjacentHTML('beforeend', htmlFila);
+    }
+
+    function guardarRegistroProduccion(e) {
+        e.preventDefault();
+        const fecha = document.getElementById('fecha').value;
+        const hora = document.getElementById('hora').value;
+        const operariosSeleccionados = Array.from(document.querySelectorAll('.check-operario:checked')).map(cb => cb.value);
+        const trabajo = document.getElementById('selectTrabajos').value;
+        const descripcion = document.getElementById('descripcionRegistro').value;
+
+        if (operariosSeleccionados.length === 0) {
+            alert("Debe seleccionar al menos un operario responsable.");
+            return;
+        }
+
+        const filasMateriales = document.querySelectorAll('.fila-material-item');
+        let materialesPosiciones = [];
+        let totalGeneral = 0;
+
+        filasMateriales.forEach(fila => {
+            const mat = fila.querySelector('.select-material-dinamico').value;
+            const cant = parseFloat(fila.querySelector('.input-cantidad-dinamica').value) || 0;
+            materialesPosiciones.push({ material: mat, cantidad: cant });
+            totalGeneral += cant;
+        });
+
+        const nuevoRegistro = {
+            fecha: fecha,
+            periodo: fecha.slice(0, 7),
+            hora: hora,
+            operarios: operariosSeleccionados.join(', '),
+            trabajo: trabajo,
+            materiales: materialesPosiciones,
+            descripcion: descripcion,
+            total: totalGeneral,
+            creadoPor: sessionStorage.getItem('sap_user_nombre') || 'Desconocido',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        db.collection("registros_produccion").add(nuevoRegistro)
+            .then(() => {
+                document.getElementById('formProd').reset();
+                document.getElementById('fecha').valueAsDate = new Date();
+                document.getElementById('contenedorMaterialesDinamicos').innerHTML = '';
+                agregarFilaMaterial();
+                actualizarSelects();
+                alert("¡Contabilizado con éxito a la nube!");
+            })
+            .catch(error => {
+                alert("Error al guardar: " + error.message);
             });
+    }
+
+    function verificarYBorrarCatalogo(tipo, valor) {
+        const passwordInput = prompt("🔒 Ingrese la contraseña de administrador para eliminar este elemento:");
+        if (passwordInput === null) return;
+        if (passwordInput === "MASTER2026" || passwordInput === "LR123") {
+            catalogos[tipo] = catalogos[tipo].filter(item => item !== valor);
+            db.collection("configuracion").doc("catalogos").set(catalogos)
+                .then(() => alert("Elemento eliminado correctamente."))
+                .catch(err => alert("Error al actualizar: " + err.message));
         } else {
-            alert("❌ Contraseña incorrecta.");
+            alert("Contraseña incorrecta.");
         }
     }
 
     function verificarYAgregarCatalogo(tipo, inputId) {
         const val = document.getElementById(inputId).value.trim().toUpperCase();
-        if (!val) return alert("Ingrese un valor válido.");
-        if (catalogos[tipo].includes(val)) return alert("Este elemento ya existe.");
-
-        const passwordInput = prompt(`🔒 Ingrese la contraseña para crear "${val}":`);
-        if (passwordInput === "LR123") {
-            catalogos[tipo].push(val);
-            db.collection("configuracion").doc("catalogos").set(catalogos).then(() => {
-                document.getElementById(inputId).value = '';
-                alert(`Elemento "${val}" creado exitosamente en la nube.`);
-            });
-        } else if (passwordInput !== null) {
-            alert("❌ Contraseña incorrecta.");
-        }
-    }
-
-    function verificarYBorrarCatalogo(tipo, valor) {
-        const passwordInput = prompt(`🔒 Ingrese la contraseña para eliminar "${valor}":`);
-        if (passwordInput === "LR123") {
-            if (catalogos[tipo].length <= 1) return alert("No se puede eliminar el último elemento.");
-            catalogos[tipo] = catalogos[tipo].filter(item => item !== valor);
-            db.collection("configuracion").doc("catalogos").set(catalogos).then(() => {
-                alert(`Elemento "${valor}" eliminado.`);
-            });
-        } else if (passwordInput !== null) {
-            alert("❌ Contraseña incorrecta.");
-        }
-    }
-
-    function agregarFilaMaterial(matSugerido = '', pesoSugerido = '') {
-        const contenedor = document.getElementById('contenedorMaterialesDinamicos');
-        const filaId = 'fila_mat_' + Date.now() + Math.random().toString(36).substr(2, 5);
-        
-        let opcionesMat = '';
-        catalogos.materiales.forEach(mat => {
-            let sel = (mat === matSugerido) ? 'selected' : '';
-            opcionesMat += `<option value="${mat}" ${sel}>${mat}</option>`;
-        });
-
-        const div = document.createElement('div');
-        div.className = 'row g-2 mb-2 align-items-center fila-material';
-        div.id = filaId;
-        div.innerHTML = `
-            <div class="col-md-7">
-                <select class="form-select form-select-sm select-material-dinamico" required>${opcionesMat}</select>
-            </div>
-            <div class="col-md-4">
-                <input type="number" step="0.01" class="form-control form-control-sm peso-material-dinamico" placeholder="Peso / Cantidad" value="${pesoSugerido}" required>
-            </div>
-            <div class="col-md-1 text-center">
-                <button type="button" class="btn btn-outline-danger btn-sm w-100 py-0" onclick="document.getElementById('${filaId}').remove()">✕</button>
-            </div>
-        `;
-        contenedor.appendChild(div);
-    }
-
-    // REGISTRO DE PRODUCCIÓN (GUARDAR EN FIREBASE)
-    document.getElementById('formProd').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const fechaVal = document.getElementById('fecha').value;
-        const horaVal = document.getElementById('hora').value;
-        const trabajoVal = document.getElementById('selectTrabajos').value;
-        const descripcionVal = document.getElementById('descripcionRegistro').value;
-        const operariosSeleccionados = Array.from(document.querySelectorAll('.check-operario:checked')).map(cb => cb.value);
-
-        if (operariosSeleccionados.length === 0) return alert("Debe seleccionar al menos un operario.");
-        
-        const filas = document.querySelectorAll('.fila-material');
-        if (filas.length === 0) return alert("Debe agregar al menos un material.");
-
-        let listaMaterialesDetalle = [];
-        let cantidadTotalGeneral = 0;
-
-        filas.forEach(fila => {
-            const mat = fila.querySelector('.select-material-dinamico').value;
-            const cant = parseFloat(fila.querySelector('.peso-material-dinamico').value) || 0;
-            listaMaterialesDetalle.push({ material: mat, cantidad: cant });
-            cantidadTotalGeneral += cant;
-        });
-
-        const nuevoRegistro = {
-            fecha: fechaVal,
-            mes: fechaVal ? fechaVal.substring(0, 7) : '',
-            hora: horaVal,
-            operarios: operariosSeleccionados,
-            trabajo: trabajoVal,
-            materiales: listaMaterialesDetalle,
-            descripcion: descripcionVal,
-            total: cantidadTotalGeneral,
-            creadoPor: sessionStorage.getItem('sap_user_nombre') || 'Desconocido',
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        db.collection("registros_produccion").add(nuevoRegistro).then(() => {
-            document.getElementById('descripcionRegistro').value = '';
-            document.getElementById('contenedorMaterialesDinamicos').innerHTML = '';
-            agregarFilaMaterial();
-            alert("✅ Documento contabilizado y sincronizado en la nube.");
-        }).catch((error) => {
-            alert("Error al guardar: " + error.message);
-        });
-    });
-
-    function renderizarTodo() {
-        renderizarPanelEncargados();
-        renderizarTablaGeneral();
-        renderizarAnalitica();
-        renderizarHoras();
-        renderizarMaterialesStock();
-        actualizarGraficas();
-    }
-
-    // PANEL DE 6 TARJETAS, UNA POR CADA ENCARGADO
-    function renderizarPanelEncargados() {
-        const cont = document.getElementById('panelEncargados');
-        cont.innerHTML = '';
-        const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
-
-        if (esMaestro) {
-            cont.innerHTML += `
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="panel-encargado border rounded p-2 text-center h-100 ${!filtroEncargadoActivo ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}" style="cursor:pointer;" onclick="seleccionarEncargado(null)">
-                        <div class="fw-bold text-success small">📊 Ver Todos</div>
-                        <div class="small text-muted">${registros.length} registro(s)</div>
-                        <div class="fw-bold text-primary">${registros.reduce((s, r) => s + (r.total || 0), 0).toFixed(2)}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        usuariosValidos.filter(u => !u.esMaestro).forEach(u => {
-            const regsUsuario = registros.filter(r => r.creadoPor === u.nombre);
-            const totalUsuario = regsUsuario.reduce((sum, r) => sum + (r.total || 0), 0);
-            const cantidadRegistros = regsUsuario.length;
-            const esSeleccionado = esMaestro && filtroEncargadoActivo === u.nombre;
-            const esUsuarioActual = sessionStorage.getItem('sap_user_nombre') === u.nombre;
-
-            cont.innerHTML += `
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="panel-encargado border rounded p-2 text-center h-100 ${esSeleccionado || esUsuarioActual ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}" ${esMaestro ? `style="cursor:pointer;" onclick="seleccionarEncargado('${u.nombre}')"` : ''}>
-                        <div class="fw-bold text-success small">${u.nombre}${esUsuarioActual ? ' 👤' : ''}</div>
-                        <div class="small text-muted">${cantidadRegistros} registro(s)</div>
-                        <div class="fw-bold text-primary">${totalUsuario.toFixed(2)}</div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function renderizarTablaGeneral() {
-        const tbody = document.getElementById('tablaCuerpo');
-        tbody.innerHTML = '';
-        const regsVista = obtenerRegistrosVista();
-
-        if (regsVista.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">No hay registros de producción en la nube.</td></tr>`;
+        if(!val) return;
+        if(catalogos[tipo].includes(val)) {
+            alert("Este elemento ya existe en el catálogo.");
             return;
         }
-
-        const regsOrdenados = [...regsVista].sort((a, b) => b.fecha.localeCompare(a.fecha));
-
-        regsOrdenados.forEach(reg => {
-            let matTexto = reg.materiales.map(m => `• ${m.material}: <strong>${m.cantidad.toFixed(2)}</strong>`).join('<br>');
-            let opsTexto = reg.operarios.join(', ');
-
-            tbody.innerHTML += `
-                <tr>
-                    <td>${reg.fecha}</td>
-                    <td><span class="badge bg-secondary">${reg.mes}</span></td>
-                    <td>${reg.hora}</td>
-                    <td><span class="badge bg-success">${opsTexto}</span></td>
-                    <td><span class="fw-bold text-primary">${reg.trabajo}</span></td>
-                    <td style="font-size: 0.8rem;">${matTexto}</td>
-                    <td><small class="text-muted">${reg.descripcion || '<i>Sin descripción</i>'}</small></td>
-                    <td class="fw-bold text-success">${reg.total.toFixed(2)}</td>
-                    <td><span class="badge bg-info text-dark">${reg.creadoPor || '—'}</span></td>
-                    <td class="text-center">
-                        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="verificarYBorrarRegistro('${reg.idDoc}')">🗑️</button>
-                    </td>
-                </tr>
-            `;
-        });
+        catalogos[tipo].push(val);
+        db.collection("configuracion").doc("catalogos").set(catalogos)
+            .then(() => {
+                document.getElementById(inputId).value = '';
+                alert("Elemento creado exitosamente.");
+            })
+            .catch(err => alert("Error: " + err.message));
     }
 
-    function verificarYBorrarRegistro(idDoc) {
-        const passwordInput = prompt("🔒 Ingrese la contraseña para eliminar este registro de la nube:");
-        if (passwordInput === "LR123") {
-            db.collection("registros_produccion").doc(idDoc).delete().then(() => {
-                alert("Registro eliminado de la nube correctamente.");
-            });
-        } else if (passwordInput !== null) {
-            alert("❌ Contraseña incorrecta.");
-        }
-    }
-
-    function renderizarAnalitica() {
-        const tbody = document.getElementById('tablaComparativa');
-        tbody.innerHTML = '';
-
-        let rendimientoOps = {};
-        catalogos.operarios.forEach(op => rendimientoOps[op] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            let proporcion = reg.total / reg.operarios.length;
-            reg.operarios.forEach(op => {
-                if (rendimientoOps[op] !== undefined) rendimientoOps[op] += proporcion;
-            });
-        });
-
-        let arrayOps = Object.keys(rendimientoOps).map(op => ({
-            operario: op,
-            total: rendimientoOps[op]
-        })).sort((a, b) => b.total - a.total);
-
-        arrayOps.forEach((item, index) => {
-            let clasificacion = "Regular";
-            let badgeClass = "bg-secondary";
-            if (index === 0 && item.total > 0) {
-                clasificacion = "🌟 Líder de Producción";
-                badgeClass = "bg-warning text-dark";
-            } else if (item.total > 0) {
-                clasificacion = "Activo";
-                badgeClass = "bg-success";
-            }
-
-            tbody.innerHTML += `
-                <tr>
-                    <td class="fw-bold">${item.operario}</td>
-                    <td class="text-success fw-bold">${item.total.toFixed(2)}</td>
-                    <td><span class="badge ${badgeClass}">${clasificacion}</span></td>
-                </tr>
-            `;
-        });
-    }
-
-    function renderizarHoras() {
-        const tbody = document.getElementById('tablaHoras');
-        tbody.innerHTML = '';
-
-        let horasMap = {};
-        const horasPosibles = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
-        horasPosibles.forEach(h => horasMap[h] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            if (horasMap[reg.hora] !== undefined) horasMap[reg.hora] += reg.total;
-        });
-
-        horasPosibles.forEach(h => {
-            tbody.innerHTML += `
-                <tr>
-                    <td><span class="badge bg-light text-dark border">${h}</span></td>
-                    <td class="fw-bold">${horasMap[h].toFixed(2)}</td>
-                </tr>
-            `;
-        });
-    }
-
-    function renderizarMaterialesStock() {
-        const tbody = document.getElementById('tablaMateriales');
-        tbody.innerHTML = '';
-
-        let stockMats = {};
-        catalogos.materiales.forEach(mat => stockMats[mat] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            reg.materiales.forEach(m => {
-                if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
-            });
-        });
-
-        let arrayMats = Object.keys(stockMats).map(mat => ({
-            material: mat,
-            total: stockMats[mat]
-        })).sort((a, b) => b.total - a.total);
-
-        arrayMats.forEach(item => {
-            if (item.total > 0) {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="text-start">${item.material}</td>
-                        <td class="fw-bold text-success">${item.total.toFixed(2)}</td>
-                    </tr>
-                `;
-            }
-        });
-
-        if (arrayMats.every(i => i.total === 0)) {
-            tbody.innerHTML = `<tr><td colspan="2" class="text-muted small">Sin movimientos de materiales.</td></tr>`;
-        }
-    }
-
-    function actualizarGraficas() {
-        let stockMats = {};
-        catalogos.materiales.forEach(mat => stockMats[mat] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            reg.materiales.forEach(m => {
-                if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
-            });
-        });
-
-        let labels = Object.keys(stockMats);
-        let data = Object.values(stockMats);
-
-        const ctxBar = document.getElementById('graficaMateriales').getContext('2d');
-        if (miGraficaBarras) miGraficaBarras.destroy();
-
-        miGraficaBarras = new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{ label: 'Cantidad', data: data, backgroundColor: '#198754' }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { font: { size: 10 } } },
-                    x: { ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 45 } }
-                }
-            }
-        });
-
-        let filteredLabels = [];
-        let filteredData = [];
-        labels.forEach((lab, idx) => {
-            if (data[idx] > 0) {
-                filteredLabels.push(lab);
-                filteredData.push(data[idx]);
-            }
-        });
-
-        const ctxPie = document.getElementById('graficaPastelMateriales').getContext('2d');
-        if (miGraficaPastel) miGraficaPastel.destroy();
-
-        miGraficaPastel = new Chart(ctxPie, {
-            type: 'pie',
-            data: {
-                labels: filteredLabels.length > 0 ? filteredLabels : ['Sin Datos'],
-                datasets: [{
-                    data: filteredData.length > 0 ? filteredData : [1],
-                    backgroundColor: ['#198754', '#ffc107', '#0dcaf0', '#dc3545', '#6c757d', '#20c997', '#fd7e14', '#6610f2']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }
-            }
-        });
-    }
-
-    // EXPORTACIÓN A EXCEL
-    function exportarEXCELGenerico(nombreArchivo, datosFiltrados) {
-        if (datosFiltrados.length === 0) return alert("⚠️ No hay registros para exportar.");
-        let wb = XLSX.utils.book_new();
-        let filasExcel = [];
-        datosFiltrados.forEach(reg => {
-            reg.materiales.forEach(mat => {
-                filasExcel.push({
-                    "Fecha": reg.fecha,
-                    "Periodo": reg.mes,
-                    "Hora": reg.hora,
-                    "Operarios": reg.operarios.join(', '),
-                    "Trabajo": reg.trabajo,
-                    "Material": mat.material,
-                    "Cantidad": mat.cantidad,
-                    "Descripción": reg.descripcion,
-                    "Total": reg.total,
-                    "Registrado por": reg.creadoPor || ''
+    function verificarYResetearDatos() {
+        const passwordInput = prompt("🔒 Ingrese la contraseña para vaciar la base de datos de la nube:");
+        if (passwordInput === null) return;
+        if (passwordInput === "LR123" || passwordInput === "MASTER2026") {
+            db.collection("registros_produccion").get().then((querySnapshot) => {
+                const batch = db.batch();
+                querySnapshot.forEach((doc) => {
+                    batch.delete(doc.ref);
                 });
-            });
-        });
-        let ws = XLSX.utils.json_to_sheet(filasExcel);
-        XLSX.utils.book_append_sheet(wb, ws, "Producción");
-        XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+                return batch.commit();
+            }).then(() => {
+                alert("Base de datos reseteada correctamente.");
+            }).catch(err => alert("Error: " + err.message));
+        } else {
+            alert("Contraseña incorrecta.");
+        }
     }
 
+    function eliminarRegistro(idDoc) {
+        if(confirm("¿Está seguro de eliminar este registro de producción?")) {
+            db.collection("registros_produccion").doc(idDoc).delete()
+                .then(() => alert("Registro eliminado."))
+                .catch(err => alert("Error al eliminar: " + err.message));
+        }
+    }
+
+    function renderizarTodo() {
+        const regsVista = obtenerRegistrosVista();
+        
+        // Renderizar tabla general de base de datos
+        const tbody = document.getElementById('tablaCuerpo');
+        tbody.innerHTML = '';
+        regsVista.forEach(r => {
+            let matsStr = r.materiales.map(m => `${m.material}: <b>${m.cantidad}</b>`).join('<br>');
+            tbody.innerHTML += `
+                <tr>
+                    <td>${r.fecha}</td>
+                    <td>${r.periodo}</td>
+                    <td>${r.hora}</td>
+                    <td>${r.operarios}</td>
+                    <td><span class="badge bg-success">${r.trabajo}</span></td>
+                    <td>${matsStr}</td>
+                    <td>${r.descripcion || '-'}</td>
+                    <td class="fw-bold">${r.total}</td>
+                    <td><span class="badge bg-secondary">${r.creadoPor}</span></td>
+                    <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="eliminarRegistro('${idDocConCheck(r.idDoc)}')">🗑️</button></td>
+                </tr>
+            `;
+        });
+
+        renderizarPanelEncargados();
+        renderizarAnaliticas(regsVista);
+    }
+
+    function idDocConCheck(id) {
+        return id;
+    }
+
+    function renderizarPanelEncargados() {
+        const panel = document.getElementById('panelEncargados');
+        panel.innerHTML = '';
+        
+        const nombresEncargados = ["Encargado 1", "Encargado 2", "Encargado 3", "Encargado 4", "Encargado 5", "Encargado 6"];
+        
+        nombresEncargados.forEach(nombre => {
+            const count = registros.filter(r => r.creadoPor === nombre).length;
+            const isActive = filtroEncargadoActivo === nombre;
+            const borderClass = isActive ? 'border-success bg-light' : 'border';
+            
+            panel.innerHTML += `
+                <div class="col-md-2">
+                    <div class="p-2 rounded ${borderClass} text-center panel-encargado shadow-sm" style="cursor: pointer;" onclick="seleccionarEncargado('${nombre}')">
+                        <small class="fw-bold d-block text-truncate">${nombre}</small>
+                        <span class="badge bg-success mt-1">${count} registros</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function renderizarAnaliticas(regs) {
+        // Tablas y gráficas simplificadas de rendimiento
+        const tablaMat = document.getElementById('tablaMateriales');
+        tablaMat.innerHTML = '';
+        
+        let totalesMats = {};
+        catalogos.materiales.forEach(m => totalesMats[m] = 0);
+
+        regs.forEach(r => {
+            if(r.materiales) {
+                r.materiales.forEach(m => {
+                    if(totalesMats[m.material] !== undefined) {
+                        totalesMats[m.material] += m.cantidad;
+                    } else {
+                        totalesMats[m.material] = m.cantidad;
+                    }
+                });
+            }
+        });
+
+        for(let mat in totalesMats) {
+            if(totalesMats[mat] > 0) {
+                tablaMat.innerHTML += `<tr><td>${mat}</td><td class="fw-bold">${totalesMats[mat]}</td></tr>`;
+            }
+        }
+    }
+
+    // Funciones de Exportación Excel
     function exportarExcelDiario() {
-        const f = document.getElementById('inputFechaDiaria').value;
-        exportarEXCELGenerico(`Diario_${f}`, registros.filter(r => r.fecha === f));
+        const fechaVal = document.getElementById('inputFechaDiaria').value;
+        const datosFiltrados = registros.filter(r => r.fecha === fechaVal);
+        exportarAExcelHoja(datosFiltrados, `Reporte_Diario_${fechaVal}`);
     }
 
     function exportarExcelSemanal() {
-        const fechaInput = document.getElementById('inputFechaSemanal').value;
-        if (!fechaInput) return alert("Seleccione una fecha.");
-        let d = new Date(fechaInput);
-        let day = d.getDay();
-        let diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        let lunes = new Date(d.setDate(diff)).toISOString().slice(0, 10);
-        let sabado = new Date(new Date(d).setDate(d.getDate() + 5)).toISOString().slice(0, 10);
-        exportarEXCELGenerico(`Semanal_${lunes}_al_${sabado}`, registros.filter(r => r.fecha >= lunes && r.fecha <= sabado));
+        const fechaVal = document.getElementById('inputFechaSemanal').value;
+        if(!fechaVal) return alert("Seleccione una fecha.");
+        exportarAExcelHoja(registros, `Reporte_Semanal`);
     }
 
     function exportarExcelMensual() {
-        const m = document.getElementById('inputMesMensual').value;
-        exportarEXCELGenerico(`Mensual_${m}`, registros.filter(r => r.mes === m));
+        const mesVal = document.getElementById('inputMesMensual').value;
+        const datosFiltrados = registros.filter(r => r.periodo === mesVal);
+        exportarAExcelHoja(datosFiltrados, `Reporte_Mensual_${mesVal}`);
+    }
+
+    function exportarAExcelHoja(data, nombreArchivo) {
+        if(data.length === 0) {
+            alert("No hay registros para exportar en este rango.");
+            return;
+        }
+        let rows = [];
+        data.forEach(r => {
+            r.materiales.forEach(m => {
+                rows.push({
+                    Fecha: r.fecha,
+                    Hora: r.hora,
+                    Operarios: r.operarios,
+                    Trabajo: r.trabajo,
+                    Material: m.material,
+                    Cantidad: m.cantidad,
+                    Descripcion: r.descripcion,
+                    RegistradoPor: r.creadoPor
+                });
+            });
+        });
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Produccion");
+        XLSX.writeFile(workbook, `${nombreArchivo}.xlsx`);
     }
 </script>
 </body>
