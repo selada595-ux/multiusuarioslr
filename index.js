@@ -67,7 +67,7 @@
     <div class="login-body">
         <div class="text-center mb-4">
             <p class="text-muted small mb-0"><strong>LA RECICLADORA S.A.</strong></p>
-            <p class="text-muted small">Módulo de Producción</p>
+            <p class="text-muted small">Módulo de Producción (Multiusuario - Sincronizado)</p>
         </div>
         <form id="formLogin" onsubmit="handleLogin(event)">
             <div class="sap-input-group">
@@ -125,8 +125,8 @@
 
     <div class="container-fluid my-3">
 
-        <!-- VENTANA 0: PANEL POR ENCARGADO (SOLO VISIBLE PARA EL USUARIO MAESTRO) -->
-        <div id="ventanaPanelEncargados" class="sap-window bg-white border mb-3 rounded shadow-sm d-none">
+        <!-- VENTANA 0: PANEL POR ENCARGADO -->
+        <div class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>👥 Panel de Actividad por Encargado</span>
                 <span>[Transacción /ZPROD/USERS]</span>
@@ -136,8 +136,8 @@
             </div>
         </div>
 
-        <!-- VENTANA 1: CONFIGURACIÓN DE MAESTROS (NO VISIBLE PARA EL SUPERVISOR, SOLO INGRESA ENCARGADOS) -->
-        <div id="ventanaMaestros" class="sap-window bg-white border mb-3 rounded shadow-sm">
+        <!-- VENTANA 1: CONFIGURACIÓN DE MAESTROS -->
+        <div class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>📋 Maestro de Datos Globales</span>
                 <span>[Transacción /ZPROD/MASTERS]</span>
@@ -172,8 +172,8 @@
             </div>
         </div>
 
-        <!-- VENTANA 2: REGISTRO DE MOVIMIENTOS (NO VISIBLE PARA EL SUPERVISOR, SOLO INGRESA ENCARGADOS) -->
-        <div id="ventanaRegistro" class="sap-window bg-white border mb-3 rounded shadow-sm">
+        <!-- VENTANA 2: REGISTRO DE MOVIMIENTOS -->
+        <div class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>📝 Registro de Producción Compartido</span>
                 <span>[Transacción /ZPROD/ENTRY]</span>
@@ -422,15 +422,12 @@
     // sus usuarios y contraseñas de acceso.
     // ==========================================
     const usuariosValidos = [
-        { user: "RECI 1", pass: "LR001", nombre: "Encargado 1", esMaestro: false },
-        { user: "RECI 2", pass: "LR002", nombre: "Encargado 2", esMaestro: false },
-        { user: "RECI 3", pass: "LR003", nombre: "Encargado 3", esMaestro: false },
-        { user: "RECI 4", pass: "LR004", nombre: "Encargado 4", esMaestro: false },
-        { user: "RECI 5", pass: "LR005", nombre: "Encargado 5", esMaestro: false },
-        { user: "RECI 6", pass: "LR006", nombre: "Encargado 6", esMaestro: false },
-        // Usuario maestro: único que puede ver el Panel de Actividad por Encargado.
-        // Cambia el usuario/contraseña por unos que solo tú conozcas.
-        { user: "MAESTRO", pass: "MASTER2026", nombre: "Supervisor General", esMaestro: true }
+        { user: "RECI 1", pass: "LR001", nombre: "Encargado 1" },
+        { user: "RECI 2", pass: "LR002", nombre: "Encargado 2" },
+        { user: "RECI 3", pass: "LR003", nombre: "Encargado 3" },
+        { user: "RECI 4", pass: "LR004", nombre: "Encargado 4" },
+        { user: "RECI 5", pass: "LR005", nombre: "Encargado 5" },
+        { user: "RECI 6", pass: "LR006", nombre: "Encargado 6" }
     ];
 
     // SISTEMA DE AUTENTICACIÓN
@@ -445,7 +442,6 @@
             sessionStorage.setItem('sap_logged_in', 'true');
             sessionStorage.setItem('sap_user', encontrado.user);
             sessionStorage.setItem('sap_user_nombre', encontrado.nombre);
-            sessionStorage.setItem('sap_es_maestro', encontrado.esMaestro ? 'true' : 'false');
             mostrarApp();
         } else {
             document.getElementById('loginError').classList.remove('d-none');
@@ -458,14 +454,6 @@
         app.classList.remove('d-none');
         app.classList.add('d-flex');
         document.getElementById('lblUsuarioLogueado').innerText = "Usuario: " + sessionStorage.getItem('sap_user_nombre');
-
-        // Solo el usuario maestro puede ver el Panel de Actividad por Encargado.
-        // El supervisor NO ingresa datos, solo supervisa: se ocultan los formularios de captura.
-        const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
-        document.getElementById('ventanaPanelEncargados').classList.toggle('d-none', !esMaestro);
-        document.getElementById('ventanaMaestros').classList.toggle('d-none', esMaestro);
-        document.getElementById('ventanaRegistro').classList.toggle('d-none', esMaestro);
-
         initSistema();
     }
 
@@ -473,7 +461,6 @@
         sessionStorage.removeItem('sap_logged_in');
         sessionStorage.removeItem('sap_user');
         sessionStorage.removeItem('sap_user_nombre');
-        sessionStorage.removeItem('sap_es_maestro');
         location.reload();
     }
 
@@ -492,23 +479,6 @@
     let registros = [];
     let miGraficaBarras = null;
     let miGraficaPastel = null;
-    // El supervisor puede hacer clic en cada tarjeta para cambiar de encargado a encargado.
-    // null = ver todos los encargados a la vez.
-    let filtroEncargadoActivo = null;
-
-    function obtenerRegistrosVista() {
-        if (filtroEncargadoActivo) {
-            return registros.filter(r => r.creadoPor === filtroEncargadoActivo);
-        }
-        return registros;
-    }
-
-    function seleccionarEncargado(nombre) {
-        const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
-        if (!esMaestro) return; // Solo el supervisor puede cambiar el filtro
-        filtroEncargadoActivo = (filtroEncargadoActivo === nombre) ? null : nombre;
-        renderizarTodo();
-    }
 
     function initSistema() {
         const hoyStr = new Date().toISOString().slice(0, 10);
@@ -742,30 +712,16 @@
     function renderizarPanelEncargados() {
         const cont = document.getElementById('panelEncargados');
         cont.innerHTML = '';
-        const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
 
-        if (esMaestro) {
-            cont.innerHTML += `
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="panel-encargado border rounded p-2 text-center h-100 ${!filtroEncargadoActivo ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}" style="cursor:pointer;" onclick="seleccionarEncargado(null)">
-                        <div class="fw-bold text-success small">📊 Ver Todos</div>
-                        <div class="small text-muted">${registros.length} registro(s)</div>
-                        <div class="fw-bold text-primary">${registros.reduce((s, r) => s + (r.total || 0), 0).toFixed(2)}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        usuariosValidos.filter(u => !u.esMaestro).forEach(u => {
+        usuariosValidos.forEach(u => {
             const regsUsuario = registros.filter(r => r.creadoPor === u.nombre);
             const totalUsuario = regsUsuario.reduce((sum, r) => sum + (r.total || 0), 0);
             const cantidadRegistros = regsUsuario.length;
-            const esSeleccionado = esMaestro && filtroEncargadoActivo === u.nombre;
             const esUsuarioActual = sessionStorage.getItem('sap_user_nombre') === u.nombre;
 
             cont.innerHTML += `
                 <div class="col-6 col-md-4 col-lg-2">
-                    <div class="panel-encargado border rounded p-2 text-center h-100 ${esSeleccionado || esUsuarioActual ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}" ${esMaestro ? `style="cursor:pointer;" onclick="seleccionarEncargado('${u.nombre}')"` : ''}>
+                    <div class="panel-encargado border rounded p-2 text-center h-100 ${esUsuarioActual ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}">
                         <div class="fw-bold text-success small">${u.nombre}${esUsuarioActual ? ' 👤' : ''}</div>
                         <div class="small text-muted">${cantidadRegistros} registro(s)</div>
                         <div class="fw-bold text-primary">${totalUsuario.toFixed(2)}</div>
@@ -778,14 +734,13 @@
     function renderizarTablaGeneral() {
         const tbody = document.getElementById('tablaCuerpo');
         tbody.innerHTML = '';
-        const regsVista = obtenerRegistrosVista();
 
-        if (regsVista.length === 0) {
+        if (registros.length === 0) {
             tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">No hay registros de producción en la nube.</td></tr>`;
             return;
         }
 
-        const regsOrdenados = [...regsVista].sort((a, b) => b.fecha.localeCompare(a.fecha));
+        const regsOrdenados = [...registros].sort((a, b) => b.fecha.localeCompare(a.fecha));
 
         regsOrdenados.forEach(reg => {
             let matTexto = reg.materiales.map(m => `• ${m.material}: <strong>${m.cantidad.toFixed(2)}</strong>`).join('<br>');
@@ -828,7 +783,7 @@
         let rendimientoOps = {};
         catalogos.operarios.forEach(op => rendimientoOps[op] = 0);
 
-        obtenerRegistrosVista().forEach(reg => {
+        registros.forEach(reg => {
             let proporcion = reg.total / reg.operarios.length;
             reg.operarios.forEach(op => {
                 if (rendimientoOps[op] !== undefined) rendimientoOps[op] += proporcion;
@@ -869,7 +824,7 @@
         const horasPosibles = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
         horasPosibles.forEach(h => horasMap[h] = 0);
 
-        obtenerRegistrosVista().forEach(reg => {
+        registros.forEach(reg => {
             if (horasMap[reg.hora] !== undefined) horasMap[reg.hora] += reg.total;
         });
 
@@ -890,7 +845,7 @@
         let stockMats = {};
         catalogos.materiales.forEach(mat => stockMats[mat] = 0);
 
-        obtenerRegistrosVista().forEach(reg => {
+        registros.forEach(reg => {
             reg.materiales.forEach(m => {
                 if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
             });
@@ -921,7 +876,7 @@
         let stockMats = {};
         catalogos.materiales.forEach(mat => stockMats[mat] = 0);
 
-        obtenerRegistrosVista().forEach(reg => {
+        registros.forEach(reg => {
             reg.materiales.forEach(m => {
                 if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
             });
