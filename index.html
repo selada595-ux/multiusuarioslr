@@ -419,58 +419,44 @@
     const auth = firebase.auth();
 
     // ==========================================
-    // USUARIOS DEL SISTEMA (MULTIUSUARIO)
-    // Edita este listado para cambiar los 6 encargados,
-    // sus usuarios y contraseñas de acceso.
+    // La verificación de usuario/contraseña ahora vive en un
+    // servidor (función en Vercel), no aquí. Este archivo ya no
+    // contiene ninguna contraseña.
     // ==========================================
-    const usuariosValidos = [
-        { user: "RECI 1", pass: "xK9!mQ2vLp7Rz", nombre: "Encargado 1", esMaestro: false },
-        { user: "RECI 2", pass: "Tr4&Bw8nZq5Ht", nombre: "Encargado 2", esMaestro: false },
-        { user: "RECI 3", pass: "Hf6#Yv3sNk9Cm", nombre: "Encargado 3", esMaestro: false },
-        { user: "RECI 4", pass: "Qm2$Rt7wXc4Bn", nombre: "Encargado 4", esMaestro: false },
-        { user: "RECI 5", pass: "Zn8&Lp5vBk3Fw", nombre: "Encargado 5", esMaestro: false },
-        { user: "RECI 6", pass: "Wc3!Kx9mRt6Gy", nombre: "Encargado 6", esMaestro: false },
-        // Usuario maestro: único que puede ver el Panel de Actividad por Encargado.
-        // Cambia el usuario/contraseña por unos que solo tú conozcas.
-        { user: "MAESTRO", pass: "Jf7#Vn4wPq8Xz2Lm", nombre: "Supervisor General", esMaestro: true }
-    ];
-
-    // Convierte el usuario de la app (ej. "RECI 1") en un correo interno
-    // fijo para Firebase Authentication. No es un correo real, solo un
-    // identificador — Firebase Authentication exige formato de correo.
-    function emailInternoParaUsuario(userApp) {
-        return userApp.trim().toLowerCase().replace(/\s+/g, '') + "@recicladora-produccion.local";
-    }
+    const URL_FUNCION_LOGIN = "https://ecicladora-login-api.vercel.app/api/login";
 
     // SISTEMA DE AUTENTICACIÓN
     function handleLogin(e) {
         e.preventDefault();
         const user = document.getElementById('userInput').value.trim().toUpperCase();
         const pass = document.getElementById('passInput').value;
+        const btn = e.target.querySelector('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
 
-        const encontrado = usuariosValidos.find(u => u.user === user && u.pass === pass);
-
-        if (encontrado) {
-            const btn = e.target.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
-
-            // Autenticación real con Firebase (cuenta propia por encargado).
-            // Sustituye a la autenticación anónima, que permitía que
-            // cualquier visitante del sitio obtuviera acceso a la base de
-            // datos sin usuario ni contraseña.
-            auth.signInWithEmailAndPassword(emailInternoParaUsuario(encontrado.user), encontrado.pass).then(() => {
-                sessionStorage.setItem('sap_logged_in', 'true');
-                sessionStorage.setItem('sap_user', encontrado.user);
-                sessionStorage.setItem('sap_user_nombre', encontrado.nombre);
-                sessionStorage.setItem('sap_es_maestro', encontrado.esMaestro ? 'true' : 'false');
-                mostrarApp();
-            }).catch((error) => {
+        fetch(URL_FUNCION_LOGIN, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario: user, contrasena: pass })
+        })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok) {
+                document.getElementById('loginError').classList.remove('d-none');
                 if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
-                alert("Error de conexión con la nube: " + error.message + "\n\n(Si es la primera vez, recuerda crear la cuenta de este usuario en Firebase Authentication.)");
+                return;
+            }
+            return auth.signInWithCustomToken(data.token).then(() => {
+                sessionStorage.setItem('sap_logged_in', 'true');
+                sessionStorage.setItem('sap_user', user);
+                sessionStorage.setItem('sap_user_nombre', data.nombre);
+                sessionStorage.setItem('sap_es_maestro', data.esMaestro ? 'true' : 'false');
+                mostrarApp();
             });
-        } else {
-            document.getElementById('loginError').classList.remove('d-none');
-        }
+        })
+        .catch((error) => {
+            if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
+            alert("Error de conexión: " + error.message);
+        });
     }
 
     function mostrarApp() {
