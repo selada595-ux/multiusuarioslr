@@ -67,7 +67,7 @@
     <div class="login-body">
         <div class="text-center mb-4">
             <p class="text-muted small mb-0"><strong>LA RECICLADORA S.A.</strong></p>
-            <p class="text-muted small">Módulo de Producción</p>
+            <p class="text-muted small">Módulo de Producción (Multiusuario - Sincronizado)</p>
         </div>
         <form id="formLogin" onsubmit="handleLogin(event)">
             <div class="sap-input-group">
@@ -399,6 +399,7 @@
 <!-- Firebase SDKs (Compat Version) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
     // ==========================================
@@ -415,6 +416,7 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
 
     // ==========================================
     // USUARIOS DEL SISTEMA (MULTIUSUARIO)
@@ -442,11 +444,21 @@
         const encontrado = usuariosValidos.find(u => u.user === user && u.pass === pass);
 
         if (encontrado) {
-            sessionStorage.setItem('sap_logged_in', 'true');
-            sessionStorage.setItem('sap_user', encontrado.user);
-            sessionStorage.setItem('sap_user_nombre', encontrado.nombre);
-            sessionStorage.setItem('sap_es_maestro', encontrado.esMaestro ? 'true' : 'false');
-            mostrarApp();
+            const btn = e.target.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
+
+            // Autenticación anónima con Firebase: necesaria para que las reglas
+            // de seguridad de Firestore solo permitan acceso a quien entró por la app.
+            auth.signInAnonymously().then(() => {
+                sessionStorage.setItem('sap_logged_in', 'true');
+                sessionStorage.setItem('sap_user', encontrado.user);
+                sessionStorage.setItem('sap_user_nombre', encontrado.nombre);
+                sessionStorage.setItem('sap_es_maestro', encontrado.esMaestro ? 'true' : 'false');
+                mostrarApp();
+            }).catch((error) => {
+                if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
+                alert("Error de conexión con la nube: " + error.message);
+            });
         } else {
             document.getElementById('loginError').classList.remove('d-none');
         }
@@ -474,13 +486,25 @@
         sessionStorage.removeItem('sap_user');
         sessionStorage.removeItem('sap_user_nombre');
         sessionStorage.removeItem('sap_es_maestro');
-        location.reload();
+        auth.signOut().finally(() => location.reload());
     }
 
     window.onload = function() {
-        if (sessionStorage.getItem('sap_logged_in') === 'true') {
-            mostrarApp();
-        }
+        // Espera a que Firebase confirme el estado de autenticación (persiste entre recargas)
+        // antes de mostrar la app, para evitar pantallazos de error de permisos.
+        auth.onAuthStateChanged((user) => {
+            if (sessionStorage.getItem('sap_logged_in') === 'true') {
+                if (user) {
+                    mostrarApp();
+                } else {
+                    // La sesión de Firebase se perdió (ej. caché borrada): re-autentica antes de continuar.
+                    auth.signInAnonymously().then(mostrarApp).catch(() => {
+                        sessionStorage.clear();
+                        location.reload();
+                    });
+                }
+            }
+        });
     };
 
     // --- LÓGICA DEL SISTEMA DE PRODUCCIÓN CON FIREBASE ---
