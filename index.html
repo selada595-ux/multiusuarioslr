@@ -424,16 +424,23 @@
     // sus usuarios y contraseñas de acceso.
     // ==========================================
     const usuariosValidos = [
-        { user: "RECI 1", pass: "LR001", nombre: "Encargado 1", esMaestro: false },
-        { user: "RECI 2", pass: "LR002", nombre: "Encargado 2", esMaestro: false },
-        { user: "RECI 3", pass: "LR003", nombre: "Encargado 3", esMaestro: false },
-        { user: "RECI 4", pass: "LR004", nombre: "Encargado 4", esMaestro: false },
-        { user: "RECI 5", pass: "LR005", nombre: "Encargado 5", esMaestro: false },
-        { user: "RECI 6", pass: "LR006", nombre: "Encargado 6", esMaestro: false },
+        { user: "RECI 1", pass: "xK9!mQ2vLp7Rz", nombre: "Encargado 1", esMaestro: false },
+        { user: "RECI 2", pass: "Tr4&Bw8nZq5Ht", nombre: "Encargado 2", esMaestro: false },
+        { user: "RECI 3", pass: "Hf6#Yv3sNk9Cm", nombre: "Encargado 3", esMaestro: false },
+        { user: "RECI 4", pass: "Qm2$Rt7wXc4Bn", nombre: "Encargado 4", esMaestro: false },
+        { user: "RECI 5", pass: "Zn8&Lp5vBk3Fw", nombre: "Encargado 5", esMaestro: false },
+        { user: "RECI 6", pass: "Wc3!Kx9mRt6Gy", nombre: "Encargado 6", esMaestro: false },
         // Usuario maestro: único que puede ver el Panel de Actividad por Encargado.
         // Cambia el usuario/contraseña por unos que solo tú conozcas.
-        { user: "MAESTRO", pass: "MASTER2026", nombre: "Supervisor General", esMaestro: true }
+        { user: "MAESTRO", pass: "Jf7#Vn4wPq8Xz2Lm", nombre: "Supervisor General", esMaestro: true }
     ];
+
+    // Convierte el usuario de la app (ej. "RECI 1") en un correo interno
+    // fijo para Firebase Authentication. No es un correo real, solo un
+    // identificador — Firebase Authentication exige formato de correo.
+    function emailInternoParaUsuario(userApp) {
+        return userApp.trim().toLowerCase().replace(/\s+/g, '') + "@recicladora-produccion.local";
+    }
 
     // SISTEMA DE AUTENTICACIÓN
     function handleLogin(e) {
@@ -447,9 +454,11 @@
             const btn = e.target.querySelector('button[type="submit"]');
             if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
 
-            // Autenticación anónima con Firebase: necesaria para que las reglas
-            // de seguridad de Firestore solo permitan acceso a quien entró por la app.
-            auth.signInAnonymously().then(() => {
+            // Autenticación real con Firebase (cuenta propia por encargado).
+            // Sustituye a la autenticación anónima, que permitía que
+            // cualquier visitante del sitio obtuviera acceso a la base de
+            // datos sin usuario ni contraseña.
+            auth.signInWithEmailAndPassword(emailInternoParaUsuario(encontrado.user), encontrado.pass).then(() => {
                 sessionStorage.setItem('sap_logged_in', 'true');
                 sessionStorage.setItem('sap_user', encontrado.user);
                 sessionStorage.setItem('sap_user_nombre', encontrado.nombre);
@@ -457,7 +466,7 @@
                 mostrarApp();
             }).catch((error) => {
                 if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
-                alert("Error de conexión con la nube: " + error.message);
+                alert("Error de conexión con la nube: " + error.message + "\n\n(Si es la primera vez, recuerda crear la cuenta de este usuario en Firebase Authentication.)");
             });
         } else {
             document.getElementById('loginError').classList.remove('d-none');
@@ -497,11 +506,11 @@
                 if (user) {
                     mostrarApp();
                 } else {
-                    // La sesión de Firebase se perdió (ej. caché borrada): re-autentica antes de continuar.
-                    auth.signInAnonymously().then(mostrarApp).catch(() => {
-                        sessionStorage.clear();
-                        location.reload();
-                    });
+                    // La sesión de Firebase se perdió (ej. caché borrada). Con cuentas
+                    // reales no se puede re-autenticar sin la contraseña, así que
+                    // simplemente se regresa a la pantalla de login.
+                    sessionStorage.clear();
+                    location.reload();
                 }
             }
         });
@@ -545,15 +554,25 @@
             agregarFilaMaterial();
         }
 
+        // Pinta de inmediato con los catálogos locales por defecto, para que
+        // el usuario vea algo aunque Firestore tarde o falle.
+        actualizarSelects();
+
         // ESCUCHADORES EN TIEMPO REAL DE FIREBASE (ONSNAPSHOT)
         // Todos los encargados que ingresen ven los mismos datos al instante.
         db.collection("configuracion").doc("catalogos").onSnapshot((doc) => {
             if (doc.exists) {
                 catalogos = doc.data();
             } else {
-                db.collection("configuracion").doc("catalogos").set(catalogos);
+                db.collection("configuracion").doc("catalogos").set(catalogos).catch((error) => {
+                    console.error("Error creando catálogos en Firestore:", error);
+                    alert("⚠️ No se pudo crear el catálogo en la nube: " + error.message);
+                });
             }
             actualizarSelects();
+        }, (error) => {
+            console.error("Error leyendo catálogos de Firestore:", error);
+            alert("⚠️ No se pudo conectar a la nube para cargar Operarios/Trabajos/Materiales.\n\nMotivo: " + error.message + "\n\nSe están mostrando los valores por defecto guardados localmente. Revisa las reglas de seguridad de Firestore o tu conexión.");
         });
 
         db.collection("registros_produccion").onSnapshot((querySnapshot) => {
@@ -562,6 +581,9 @@
                 registros.push({ idDoc: doc.id, ...doc.data() });
             });
             renderizarTodo();
+        }, (error) => {
+            console.error("Error leyendo registros de Firestore:", error);
+            alert("⚠️ No se pudo conectar a la nube para cargar los registros de producción.\n\nMotivo: " + error.message);
         });
     }
 
