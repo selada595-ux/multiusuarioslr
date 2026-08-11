@@ -3,1060 +3,224 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Recicladora S.A. - Control de Acceso (Login)</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>La Recicladora S.A. - Módulo de Producción</title>
     <style>
         body {
-            background-color: #198754;
             font-family: Arial, sans-serif;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background-color: #f4f6f9;
             margin: 0;
+            padding: 20px;
         }
-        .login-card {
-            background: #f8f9fa;
-            border: 2px solid #146c43;
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 420px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
-        .login-header {
-            background-color: #146c43;
-            color: white;
-            padding: 12px 20px;
-            font-weight: bold;
-            border-bottom: 3px solid #ffc107;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        h2, h3 {
+            color: #1b4d3e;
+            text-align: center;
         }
-        .login-body {
-            padding: 25px;
-        }
-        .sap-input-group {
+        .form-group {
             margin-bottom: 15px;
         }
-        .operarios-box {
-            max-height: 140px;
-            overflow-y: auto;
-            background: #fff;
-            border: 1px solid #ced4da;
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
             border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px;
+            background-color: #1b4d3e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #14382c;
+        }
+        .section {
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
             padding: 8px;
+            text-align: left;
         }
-        .panel-encargado {
-            transition: transform 0.15s ease;
+        th {
+            background-color: #1b4d3e;
+            color: white;
         }
-        .panel-encargado:hover {
-            transform: translateY(-2px);
+        .btn-secondary {
+            background-color: #6c757d;
+            margin-top: 10px;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
         }
     </style>
 </head>
 <body>
 
-<!-- PANTALLA DE LOGIN -->
-<div id="loginScreen" class="login-card">
-    <div class="login-header">
-        <span>Logon 770</span>
-        <span class="badge bg-warning text-dark">USUARIO</span>
-    </div>
-    <div class="login-body">
-        <div class="text-center mb-4">
-            <p class="text-muted small mb-0"><strong>LA RECICLADORA S.A.</strong></p>
-            <p class="text-muted small">Módulo de Producción (Multiusuario - Sincronizado)</p>
-        </div>
-        <form id="formLogin" onsubmit="handleLogin(event)">
-            <div class="sap-input-group">
-                <label class="form-label fw-bold small">Mandante</label>
-                <input type="text" id="mandante" class="form-control form-control-sm" value="100" readonly>
-            </div>
-            <div class="sap-input-group">
-                <label class="form-label fw-bold small">Usuario</label>
-                <input type="text" id="userInput" class="form-control form-control-sm" placeholder="USUARIO" required autofocus>
-            </div>
-            <div class="sap-input-group">
-                <label class="form-label fw-bold small">Contraseña</label>
-                <input type="password" id="passInput" class="form-control form-control-sm" placeholder="••••••••" required>
-            </div>
-            <div class="sap-input-group">
-                <label class="form-label fw-bold small">Idioma</label>
-                <select id="idioma" class="form-select form-select-sm">
-                    <option value="ES">ES - Español</option>
-                </select>
-            </div>
-            <div id="loginError" class="alert alert-danger py-1 small d-none text-center mb-3">
-                Usuario o contraseña incorrectos. Cada encargado tiene su propio usuario y contraseña.
-            </div>
-            <button type="submit" class="btn btn-success btn-sm w-100 py-2 fw-bold">Iniciar Sesión ➔</button>
-        </form>
-    </div>
-</div>
-
-<!-- APLICACIÓN PRINCIPAL -->
-<div id="appContainer" class="d-none w-100 h-100 flex-column" style="background-color: #e9ecef; overflow-y: auto;">
+<div class="container">
+    <h2>La Recicladora S.A.</h2>
+    <p style="text-align: center; color: #666;">Módulo de Producción y Maestros</p>
     
-    <!-- Barra Superior -->
-    <div class="sap-header" style="background-color: #146c43; color: white; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #ffc107;">
-        <div>
-            <strong>LA RECICLADORA S.A.</strong> <span class="text-warning">Easy Access</span> [Cloud Sync - 2026]
+    <!-- VISTA 1: LOGIN -->
+    <div id="vistaLogin" class="section active">
+        <h3>Logon de Usuario</h3>
+        <div class="form-group">
+            <label for="usuario">Usuario:</label>
+            <select id="usuario">
+                <option value="RECI 1">RECI 1</option>
+                <option value="RECI 2">RECI 2</option>
+                <option value="RECI 3">RECI 3</option>
+                <option value="RECI 4">RECI 4</option>
+                <option value="RECI 5">RECI 5</option>
+                <option value="RECI 6">RECI 6</option>
+            </select>
         </div>
-        <div>
-            <span class="badge bg-light text-dark">Mandante: 100</span>
-            <span class="badge bg-success" id="lblUsuarioLogueado">Usuario: RECI 1</span>
-            <button class="btn btn-sm btn-outline-light ms-2 py-0 px-2" onclick="cerrarSesion()">Cerrar Sesión 🚪</button>
+
+        <div class="form-group">
+            <label for="password">Contraseña:</label>
+            <input type="password" id="password" placeholder="Ingrese su contraseña">
         </div>
+
+        <button onclick="handleLogin()">Ingresar</button>
     </div>
 
-    <!-- Barra de Herramientas -->
-    <div class="sap-toolbar d-flex justify-content-between align-items-center bg-light border-bottom p-2 px-3">
-        <div>
-            <span class="text-muted fw-bold me-3">Transacción: ZPROD_CONTROL</span>
-            <button class="btn btn-sm btn-outline-secondary me-1" onclick="location.reload()">🔄 Refrescar</button>
-            <button class="btn btn-sm btn-outline-danger me-1" onclick="verificarYResetearDatos()">⚠️ Resetear Base de Datos</button>
-        </div>
-        <div>
-            <span class="badge bg-success">🟢 Conectado a la Nube (Multiusuario)</span>
-        </div>
-    </div>
+    <!-- VISTA 2: PANEL PRINCIPAL Y MÓDULO MAESTRO -->
+    <div id="vistaPrincipal" class="section">
+        <h3 id="saludoUsuario"></h3>
+        
+        <hr style="margin: 20px 0;">
 
-    <div class="container-fluid my-3">
-
-        <!-- VENTANA 0: PANEL POR ENCARGADO (SOLO VISIBLE PARA EL USUARIO MAESTRO) -->
-        <div id="ventanaPanelEncargados" class="sap-window bg-white border mb-3 rounded shadow-sm d-none">
-            <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
-                <span>👥 Panel de Actividad por Encargado</span>
-                <span>[Transacción /ZPROD/USERS]</span>
-            </div>
-            <div class="p-3">
-                <div class="row g-2" id="panelEncargados"></div>
-            </div>
+        <h3>Gestión de Catálogos (Maestros)</h3>
+        <div class="form-group">
+            <label for="tipoMaestro">Seleccionar Catálogo:</label>
+            <select id="tipoMaestro" onchange="cambiarMaestro()">
+                <option value="operarios">Operarios</option>
+                <option value="trabajos">Trabajos</option>
+                <option value="materiales">Materiales</option>
+            </select>
         </div>
 
-        <!-- VENTANA 1: CONFIGURACIÓN DE MAESTROS (NO VISIBLE PARA EL SUPERVISOR, SOLO INGRESA ENCARGADOS) -->
-        <div id="ventanaMaestros" class="sap-window bg-white border mb-3 rounded shadow-sm">
-            <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
-                <span>📋 Maestro de Datos Globales</span>
-                <span>[Transacción /ZPROD/MASTERS]</span>
-            </div>
-            <div class="p-3">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold small">Gestión de Operarios</label>
-                        <div class="input-group input-group-sm mb-2">
-                            <input type="text" id="nuevoOperario" class="form-control" placeholder="Ej. CARLOS">
-                            <button class="btn btn-success" type="button" onclick="verificarYAgregarCatalogo('operarios', 'nuevoOperario')">Crear</button>
-                        </div>
-                        <div class="list-group list-group-flush border rounded" style="max-height: 120px; overflow-y: auto;" id="listaEliminarOperarios"></div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold small">Gestión de Trabajos</label>
-                        <div class="input-group input-group-sm mb-2">
-                            <input type="text" id="nuevoTrabajo" class="form-control" placeholder="Ej. EMPACADO">
-                            <button class="btn btn-success" type="button" onclick="verificarYAgregarCatalogo('trabajos', 'nuevoTrabajo')">Crear</button>
-                        </div>
-                        <div class="list-group list-group-flush border rounded" style="max-height: 120px; overflow-y: auto;" id="listaEliminarTrabajos"></div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold small">Gestión de Materiales</label>
-                        <div class="input-group input-group-sm mb-2">
-                            <input type="text" id="nuevoMaterial" class="form-control" placeholder="Ej. COBRE">
-                            <button class="btn btn-success" type="button" onclick="verificarYAgregarCatalogo('materiales', 'nuevoMaterial')">Crear</button>
-                        </div>
-                        <div class="list-group list-group-flush border rounded" style="max-height: 120px; overflow-y: auto;" id="listaEliminarMateriales"></div>
-                    </div>
-                </div>
-            </div>
+        <div class="form-group">
+            <label for="nuevoValor">Nuevo Elemento:</label>
+            <input type="text" id="nuevoValor" placeholder="Ej. Juan Pérez, Corte, Aluminio...">
         </div>
+        <button onclick="agregarMaestro()">Agregar a Maestro</button>
 
-        <!-- VENTANA 2: REGISTRO DE MOVIMIENTOS (NO VISIBLE PARA EL SUPERVISOR, SOLO INGRESA ENCARGADOS) -->
-        <div id="ventanaRegistro" class="sap-window bg-white border mb-3 rounded shadow-sm">
-            <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
-                <span>📝 Registro de Producción Compartido</span>
-                <span>[Transacción /ZPROD/ENTRY]</span>
-            </div>
-            <div class="p-3">
-                <form id="formProd" class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold small">Fecha Contabilización</label>
-                        <input type="date" id="fecha" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold small">Hora de Turno</label>
-                        <select id="hora" class="form-select form-select-sm" required>
-                            <option value="07:00">07:00 AM</option>
-                            <option value="08:00">08:00 AM</option>
-                            <option value="09:00">09:00 AM</option>
-                            <option value="10:00">10:00 AM</option>
-                            <option value="11:00">11:00 AM</option>
-                            <option value="12:00">12:00 PM</option>
-                            <option value="13:00">01:00 PM</option>
-                            <option value="14:00">02:00 PM</option>
-                            <option value="15:00">03:00 PM</option>
-                            <option value="16:00">04:00 PM</option>
-                            <option value="17:00">05:00 PM</option>
-                            <option value="18:00">06:00 PM</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold small">Operario(s) Responsable(s)</label>
-                        <div id="contenedorOperariosCheck" class="operarios-box"></div>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold small">Clase de Trabajo</label>
-                        <select id="selectTrabajos" class="form-select form-select-sm" required></select>
-                    </div>
+        <h4>Elementos Registrados:</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Acciones</th>
+                </tr>
+            </i>
+            <tbody id="tablaMaestrosBody">
+                <!-- Se llenará dinámicamente -->
+            </tbody>
+        </table>
 
-                    <div class="col-12">
-                        <label class="form-label fw-bold text-success small">Posiciones de Materiales y Cantidades</label>
-                        <div id="contenedorMaterialesDinamicos" class="border p-2 rounded bg-light"></div>
-                        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="agregarFilaMaterial()">➕ Añadir Posición de Material</button>
-                    </div>
-
-                    <div class="col-12">
-                        <label class="form-label fw-bold small">Texto Breve / Descripción de la Operación</label>
-                        <textarea id="descripcionRegistro" class="form-control form-control-sm" rows="2" placeholder="Notas del lote..."></textarea>
-                    </div>
-
-                    <div class="col-12 text-end">
-                        <button type="submit" class="btn btn-success btn-sm px-4">💾 Contabilizar a la Nube</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- VENTANA 3: REPORTES Y EXCEL -->
-        <div class="sap-window border-success bg-white border mb-3 rounded shadow-sm">
-            <div class="sap-window-header bg-success text-white p-2 fw-bold border-bottom d-flex justify-content-between">
-                <span>📥 Reportes Logísticos y Descargas (Excel)</span>
-                <span>[Transacción /ZPROD/REPORTS]</span>
-            </div>
-            <div class="p-3">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="p-3 border rounded bg-light h-100 d-flex flex-column justify-content-between">
-                            <div>
-                                <h6 class="fw-bold">Reporte Diario Completo</h6>
-                                <input type="date" id="inputFechaDiaria" class="form-control form-control-sm mb-2">
-                            </div>
-                            <button onclick="exportarExcelDiario()" class="btn btn-success btn-sm w-100">📥 Exportar Diario</button>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="p-3 border rounded bg-light h-100 d-flex flex-column justify-content-between">
-                            <div>
-                                <h6 class="fw-bold">Reporte Semanal (L-S)</h6>
-                                <input type="date" id="inputFechaSemanal" class="form-control form-control-sm mb-2">
-                            </div>
-                            <button onclick="exportarExcelSemanal()" class="btn btn-primary btn-sm w-100">📥 Exportar Semanal</button>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="p-3 border rounded bg-light h-100 d-flex flex-column justify-content-between">
-                            <div>
-                                <h6 class="fw-bold">Reporte Mensual Completo</h6>
-                                <input type="month" id="inputMesMensual" class="form-control form-control-sm mb-2">
-                            </div>
-                            <button onclick="exportarExcelMensual()" class="btn btn-dark btn-sm w-100">📥 Exportar Mensual</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- VENTANA 4: ANALÍTICA Y RENDIMIENTO -->
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <div class="sap-window bg-white border h-100 rounded shadow-sm">
-                    <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom">
-                        <span>🏆 Cuadro Comparativo de Rendimiento (Global)</span>
-                    </div>
-                    <div class="p-3">
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped text-center align-middle" style="font-size: 0.85rem;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Operario</th>
-                                        <th>Total Producido</th>
-                                        <th>Clasificación</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tablaComparativa"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <div class="sap-window bg-white border h-100 rounded shadow-sm">
-                    <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom">
-                        <span>⏱️ Carga de Producción por Hora</span>
-                    </div>
-                    <div class="p-3">
-                        <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
-                            <table class="table table-bordered table-striped text-center align-middle" style="font-size: 0.85rem;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Hora</th>
-                                        <th>Total Producido</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tablaHoras"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- VENTANA 5: MATERIALES Y GRÁFICAS -->
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <div class="sap-window bg-white border h-100 rounded shadow-sm">
-                    <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom">
-                        <span>📦 Stock / Total por Material</span>
-                    </div>
-                    <div class="p-3">
-                        <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
-                            <table class="table table-sm table-bordered table-striped text-center align-middle" style="font-size: 0.85rem;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Material</th>
-                                        <th>Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tablaMateriales"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4 mb-3">
-                <div class="sap-window bg-white border h-100 rounded shadow-sm">
-                    <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom">
-                        <span>📊 Gráfica de Barras</span>
-                    </div>
-                    <div class="p-3 d-flex justify-content-center align-items-center" style="height: 230px;">
-                        <canvas id="graficaMateriales"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4 mb-3">
-                <div class="sap-window bg-white border h-100 rounded shadow-sm">
-                    <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom">
-                        <span>🥧 Distribución Porcentual</span>
-                    </div>
-                    <div class="p-3 d-flex justify-content-center align-items-center" style="height: 230px;">
-                        <canvas id="graficaPastelMateriales"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- VENTANA 6: VISOR DE BASE DE DATOS GENERAL -->
-        <div class="sap-window bg-white border rounded shadow-sm mb-4">
-            <div class="sap-window-header bg-dark text-white p-2 fw-bold border-bottom">
-                <span>🗄️ Visor de Base de Datos General (Sincronizado)</span>
-            </div>
-            <div class="p-3">
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered align-middle" style="font-size: 0.85rem;">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Periodo</th>
-                                <th>Hora</th>
-                                <th>Operario(s)</th>
-                                <th>Trabajo</th>
-                                <th>Materiales / Posiciones</th>
-                                <th>Descripción</th>
-                                <th>Total</th>
-                                <th>Registrado por</th>
-                                <th>Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaCuerpo"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
+        <button class="btn-secondary" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 </div>
-
-<!-- Scripts necesarios -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-<!-- Firebase SDKs (Compat Version) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-    // ==========================================
-    // CONFIGURACIÓN DE FIREBASE
-    // ==========================================
-    const firebaseConfig = {
-        apiKey: "AIzaSyB675pKmroUQx8dfIhiJE97eFIPqgaIGhE",
-        authDomain: "recicladora-produccion.firebaseapp.com",
-        projectId: "recicladora-produccion",
-        storageBucket: "recicladora-produccion.firebasestorage.app",
-        messagingSenderId: "719606910471",
-        appId: "1:719606910471:web:3abbfd863e880b1a7d64a2"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-
-    // ==========================================
-    // La verificación de usuario/contraseña ahora vive en un
-    // servidor (función en Vercel), no aquí. Este archivo ya no
-    // contiene ninguna contraseña.
-    // ==========================================
-    const URL_FUNCION_LOGIN = "https://ecicladora-login-api.vercel.app/api/login";
-
-    // SISTEMA DE AUTENTICACIÓN
-    function handleLogin(e) {
-        e.preventDefault();
-        const user = document.getElementById('userInput').value.trim().toUpperCase();
-        const pass = document.getElementById('passInput').value;
-        const btn = e.target.querySelector('button[type="submit"]');
-        if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
-
-        fetch(URL_FUNCION_LOGIN, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usuario: user, contrasena: pass })
-        })
-        .then(r => r.json().then(data => ({ ok: r.ok, data })))
-        .then(({ ok, data }) => {
-            if (!ok) {
-                document.getElementById('loginError').classList.remove('d-none');
-                if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
-                return;
-            }
-            return auth.signInWithCustomToken(data.token).then(() => {
-                sessionStorage.setItem('sap_logged_in', 'true');
-                sessionStorage.setItem('sap_user', user);
-                sessionStorage.setItem('sap_user_nombre', data.nombre);
-                sessionStorage.setItem('sap_es_maestro', data.esMaestro ? 'true' : 'false');
-                mostrarApp();
-            });
-        })
-        .catch((error) => {
-            if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
-            alert("Error de conexión: " + error.message);
-        });
-    }
-
-    function mostrarApp() {
-        document.getElementById('loginScreen').classList.add('d-none');
-        const app = document.getElementById('appContainer');
-        app.classList.remove('d-none');
-        app.classList.add('d-flex');
-        document.getElementById('lblUsuarioLogueado').innerText = "Usuario: " + sessionStorage.getItem('sap_user_nombre');
-
-        // Solo el usuario maestro puede ver el Panel de Actividad por Encargado.
-        // El supervisor NO ingresa datos, solo supervisa: se ocultan los formularios de captura.
-        const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
-        document.getElementById('ventanaPanelEncargados').classList.toggle('d-none', !esMaestro);
-        document.getElementById('ventanaMaestros').classList.toggle('d-none', esMaestro);
-        document.getElementById('ventanaRegistro').classList.toggle('d-none', esMaestro);
-
-        initSistema();
-    }
-
-    function cerrarSesion() {
-        sessionStorage.removeItem('sap_logged_in');
-        sessionStorage.removeItem('sap_user');
-        sessionStorage.removeItem('sap_user_nombre');
-        sessionStorage.removeItem('sap_es_maestro');
-        auth.signOut().finally(() => location.reload());
-    }
-
-    window.onload = function() {
-        // Espera a que Firebase confirme el estado de autenticación (persiste entre recargas)
-        // antes de mostrar la app, para evitar pantallazos de error de permisos.
-        auth.onAuthStateChanged((user) => {
-            if (sessionStorage.getItem('sap_logged_in') === 'true') {
-                if (user) {
-                    mostrarApp();
-                } else {
-                    // La sesión de Firebase se perdió (ej. caché borrada). Con cuentas
-                    // reales no se puede re-autenticar sin la contraseña, así que
-                    // simplemente se regresa a la pantalla de login.
-                    sessionStorage.clear();
-                    location.reload();
-                }
-            }
-        });
-    };
-
-    // --- LÓGICA DEL SISTEMA DE PRODUCCIÓN CON FIREBASE ---
+    // Estructura de datos local para los maestros
     let catalogos = {
-        operarios: ["BRICEIDI", "MARIA", "JUAN", "ALIOSKA", "WALTER", "RANDOLFO"],
-        trabajos: ["PROYECTOS", "COMPACTADOS", "PREPARANDO MATERIAL", "LIMPIANDO", "CORTANDO", "OTROS"],
-        materiales: ["BRONCE ROJO", "BRONCE AMARILLO", "COBRE 1RA", "COBRE 2DA", "BRILLANTE", "LATÓN", "ACERO", "ALUMINIO MIXTO", "ALUMINIO SOLIDO", "RAC", "RAD.ALUMINIO", "CHATARRA", "BASURA", "OTROS"]
+        operarios: ["Operario 1", "Operario 2"],
+        trabajos: ["Clasificación", "Compactado"],
+        materiales: ["Cartón", "Plástico PET", "Aluminio"]
     };
-    let registros = [];
-    let miGraficaBarras = null;
-    let miGraficaPastel = null;
-    // El supervisor puede hacer clic en cada tarjeta para cambiar de encargado a encargado.
-    // null = ver todos los encargados a la vez.
-    let filtroEncargadoActivo = null;
 
-    function obtenerRegistrosVista() {
-        if (filtroEncargadoActivo) {
-            return registros.filter(r => r.creadoPor === filtroEncargadoActivo);
-        }
-        return registros;
-    }
+    function handleLogin() {
+        const user = document.getElementById('usuario').value;
+        const pass = document.getElementById('password').value;
 
-    function seleccionarEncargado(nombre) {
-        const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
-        if (!esMaestro) return; // Solo el supervisor puede cambiar el filtro
-        filtroEncargadoActivo = (filtroEncargadoActivo === nombre) ? null : nombre;
-        renderizarTodo();
-    }
-
-    function initSistema() {
-        const hoyStr = new Date().toISOString().slice(0, 10);
-        document.getElementById('fecha').valueAsDate = new Date();
-        document.getElementById('inputFechaDiaria').value = hoyStr;
-        document.getElementById('inputFechaSemanal').value = hoyStr;
-        document.getElementById('inputMesMensual').value = hoyStr.slice(0, 7);
-
-        if(document.getElementById('contenedorMaterialesDinamicos').children.length === 0) {
-            agregarFilaMaterial();
-        }
-
-        // Pinta de inmediato con los catálogos locales por defecto, para que
-        // el usuario vea algo aunque Firestore tarde o falle.
-        actualizarSelects();
-
-        // ESCUCHADORES EN TIEMPO REAL DE FIREBASE (ONSNAPSHOT)
-        // Todos los encargados que ingresen ven los mismos datos al instante.
-        db.collection("configuracion").doc("catalogos").onSnapshot((doc) => {
-            if (doc.exists) {
-                catalogos = doc.data();
-            } else {
-                db.collection("configuracion").doc("catalogos").set(catalogos).catch((error) => {
-                    console.error("Error creando catálogos en Firestore:", error);
-                    alert("⚠️ No se pudo crear el catálogo en la nube: " + error.message);
-                });
-            }
-            actualizarSelects();
-        }, (error) => {
-            console.error("Error leyendo catálogos de Firestore:", error);
-            alert("⚠️ No se pudo conectar a la nube para cargar Operarios/Trabajos/Materiales.\n\nMotivo: " + error.message + "\n\nSe están mostrando los valores por defecto guardados localmente. Revisa las reglas de seguridad de Firestore o tu conexión.");
-        });
-
-        db.collection("registros_produccion").onSnapshot((querySnapshot) => {
-            registros = [];
-            querySnapshot.forEach((doc) => {
-                registros.push({ idDoc: doc.id, ...doc.data() });
-            });
-            renderizarTodo();
-        }, (error) => {
-            console.error("Error leyendo registros de Firestore:", error);
-            alert("⚠️ No se pudo conectar a la nube para cargar los registros de producción.\n\nMotivo: " + error.message);
-        });
-    }
-
-    function actualizarSelects() {
-        const contenedorOps = document.getElementById('contenedorOperariosCheck');
-        const operariosSeleccionadosPrevios = Array.from(document.querySelectorAll('.check-operario:checked')).map(cb => cb.value);
-        
-        contenedorOps.innerHTML = '';
-        catalogos.operarios.forEach(op => {
-            const isChecked = operariosSeleccionadosPrevios.includes(op) ? 'checked' : '';
-            contenedorOps.innerHTML += `
-                <div class="form-check form-check-sm">
-                    <input class="form-check-input check-operario" type="checkbox" value="${op}" id="op_${op}" ${isChecked}>
-                    <label class="form-check-label small fw-normal" for="op_${op}">${op}</label>
-                </div>
-            `;
-        });
-
-        renderizarListasEliminacionCat();
-
-        const selectTrab = $('#selectTrabajos');
-        const valActualTrab = selectTrab.val();
-        selectTrab.empty();
-        catalogos.trabajos.forEach(tr => selectTrab.append(new Option(tr, tr)));
-        if(valActualTrab) selectTrab.val(valActualTrab);
-
-        document.querySelectorAll('.select-material-dinamico').forEach(select => {
-            const valAnt = select.value;
-            select.innerHTML = '';
-            catalogos.materiales.forEach(mat => {
-                select.innerHTML += `<option value="${mat}">${mat}</option>`;
-            });
-            if(valAnt) select.value = valAnt;
-        });
-    }
-
-    function renderizarListasEliminacionCat() {
-        const listaOps = document.getElementById('listaEliminarOperarios');
-        listaOps.innerHTML = '';
-        catalogos.operarios.forEach(op => {
-            listaOps.innerHTML += `
-                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-1 px-2 small">
-                    <span>${op}</span>
-                    <button class="btn btn-outline-danger btn-sm py-0 px-1" type="button" onclick="verificarYBorrarCatalogo('operarios', '${op}')">🗑️</button>
-                </div>
-            `;
-        });
-
-        const listaTrabs = document.getElementById('listaEliminarTrabajos');
-        listaTrabs.innerHTML = '';
-        catalogos.trabajos.forEach(tr => {
-            listaTrabs.innerHTML += `
-                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-1 px-2 small">
-                    <span>${tr}</span>
-                    <button class="btn btn-outline-danger btn-sm py-0 px-1" type="button" onclick="verificarYBorrarCatalogo('trabajos', '${tr}')">🗑️</button>
-                </div>
-            `;
-        });
-
-        const listaMats = document.getElementById('listaEliminarMateriales');
-        listaMats.innerHTML = '';
-        catalogos.materiales.forEach(mat => {
-            listaMats.innerHTML += `
-                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-1 px-2 small">
-                    <span>${mat}</span>
-                    <button class="btn btn-outline-danger btn-sm py-0 px-1" type="button" onclick="verificarYBorrarCatalogo('materiales', '${mat}')">🗑️</button>
-                </div>
-            `;
-        });
-    }
-
-    function verificarYResetearDatos() {
-        const passwordInput = prompt("🔒 Ingrese la contraseña para vaciar la base de datos de la nube:");
-        if (passwordInput === null) return;
-        if (passwordInput === "LR123") {
-            db.collection("registros_produccion").get().then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    doc.ref.delete();
-                });
-                alert("Base de datos reiniciada con éxito.");
-            });
-        } else {
-            alert("❌ Contraseña incorrecta.");
-        }
-    }
-
-    function verificarYAgregarCatalogo(tipo, inputId) {
-        const val = document.getElementById(inputId).value.trim().toUpperCase();
-        if (!val) return alert("Ingrese un valor válido.");
-        if (catalogos[tipo].includes(val)) return alert("Este elemento ya existe.");
-
-        const passwordInput = prompt(`🔒 Ingrese la contraseña para crear "${val}":`);
-        if (passwordInput === "LR123") {
-            catalogos[tipo].push(val);
-            db.collection("configuracion").doc("catalogos").set(catalogos).then(() => {
-                document.getElementById(inputId).value = '';
-                alert(`Elemento "${val}" creado exitosamente en la nube.`);
-            });
-        } else if (passwordInput !== null) {
-            alert("❌ Contraseña incorrecta.");
-        }
-    }
-
-    function verificarYBorrarCatalogo(tipo, valor) {
-        const passwordInput = prompt(`🔒 Ingrese la contraseña para eliminar "${valor}":`);
-        if (passwordInput === "LR123") {
-            if (catalogos[tipo].length <= 1) return alert("No se puede eliminar el último elemento.");
-            catalogos[tipo] = catalogos[tipo].filter(item => item !== valor);
-            db.collection("configuracion").doc("catalogos").set(catalogos).then(() => {
-                alert(`Elemento "${valor}" eliminado.`);
-            });
-        } else if (passwordInput !== null) {
-            alert("❌ Contraseña incorrecta.");
-        }
-    }
-
-    function agregarFilaMaterial(matSugerido = '', pesoSugerido = '') {
-        const contenedor = document.getElementById('contenedorMaterialesDinamicos');
-        const filaId = 'fila_mat_' + Date.now() + Math.random().toString(36).substr(2, 5);
-        
-        let opcionesMat = '';
-        catalogos.materiales.forEach(mat => {
-            let sel = (mat === matSugerido) ? 'selected' : '';
-            opcionesMat += `<option value="${mat}" ${sel}>${mat}</option>`;
-        });
-
-        const div = document.createElement('div');
-        div.className = 'row g-2 mb-2 align-items-center fila-material';
-        div.id = filaId;
-        div.innerHTML = `
-            <div class="col-md-7">
-                <select class="form-select form-select-sm select-material-dinamico" required>${opcionesMat}</select>
-            </div>
-            <div class="col-md-4">
-                <input type="number" step="0.01" class="form-control form-control-sm peso-material-dinamico" placeholder="Peso / Cantidad" value="${pesoSugerido}" required>
-            </div>
-            <div class="col-md-1 text-center">
-                <button type="button" class="btn btn-outline-danger btn-sm w-100 py-0" onclick="document.getElementById('${filaId}').remove()">✕</button>
-            </div>
-        `;
-        contenedor.appendChild(div);
-    }
-
-    // REGISTRO DE PRODUCCIÓN (GUARDAR EN FIREBASE)
-    document.getElementById('formProd').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const fechaVal = document.getElementById('fecha').value;
-        const horaVal = document.getElementById('hora').value;
-        const trabajoVal = document.getElementById('selectTrabajos').value;
-        const descripcionVal = document.getElementById('descripcionRegistro').value;
-        const operariosSeleccionados = Array.from(document.querySelectorAll('.check-operario:checked')).map(cb => cb.value);
-
-        if (operariosSeleccionados.length === 0) return alert("Debe seleccionar al menos un operario.");
-        
-        const filas = document.querySelectorAll('.fila-material');
-        if (filas.length === 0) return alert("Debe agregar al menos un material.");
-
-        let listaMaterialesDetalle = [];
-        let cantidadTotalGeneral = 0;
-
-        filas.forEach(fila => {
-            const mat = fila.querySelector('.select-material-dinamico').value;
-            const cant = parseFloat(fila.querySelector('.peso-material-dinamico').value) || 0;
-            listaMaterialesDetalle.push({ material: mat, cantidad: cant });
-            cantidadTotalGeneral += cant;
-        });
-
-        const nuevoRegistro = {
-            fecha: fechaVal,
-            mes: fechaVal ? fechaVal.substring(0, 7) : '',
-            hora: horaVal,
-            operarios: operariosSeleccionados,
-            trabajo: trabajoVal,
-            materiales: listaMaterialesDetalle,
-            descripcion: descripcionVal,
-            total: cantidadTotalGeneral,
-            creadoPor: sessionStorage.getItem('sap_user_nombre') || 'Desconocido',
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        db.collection("registros_produccion").add(nuevoRegistro).then(() => {
-            document.getElementById('descripcionRegistro').value = '';
-            document.getElementById('contenedorMaterialesDinamicos').innerHTML = '';
-            agregarFilaMaterial();
-            alert("✅ Documento contabilizado y sincronizado en la nube.");
-        }).catch((error) => {
-            alert("Error al guardar: " + error.message);
-        });
-    });
-
-    function renderizarTodo() {
-        renderizarPanelEncargados();
-        renderizarTablaGeneral();
-        renderizarAnalitica();
-        renderizarHoras();
-        renderizarMaterialesStock();
-        actualizarGraficas();
-    }
-
-    // PANEL DE 6 TARJETAS, UNA POR CADA ENCARGADO
-    function renderizarPanelEncargados() {
-        const cont = document.getElementById('panelEncargados');
-        cont.innerHTML = '';
-        const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
-
-        if (esMaestro) {
-            cont.innerHTML += `
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="panel-encargado border rounded p-2 text-center h-100 ${!filtroEncargadoActivo ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}" style="cursor:pointer;" onclick="seleccionarEncargado(null)">
-                        <div class="fw-bold text-success small">📊 Ver Todos</div>
-                        <div class="small text-muted">${registros.length} registro(s)</div>
-                        <div class="fw-bold text-primary">${registros.reduce((s, r) => s + (r.total || 0), 0).toFixed(2)}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        usuariosValidos.filter(u => !u.esMaestro).forEach(u => {
-            const regsUsuario = registros.filter(r => r.creadoPor === u.nombre);
-            const totalUsuario = regsUsuario.reduce((sum, r) => sum + (r.total || 0), 0);
-            const cantidadRegistros = regsUsuario.length;
-            const esSeleccionado = esMaestro && filtroEncargadoActivo === u.nombre;
-            const esUsuarioActual = sessionStorage.getItem('sap_user_nombre') === u.nombre;
-
-            cont.innerHTML += `
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="panel-encargado border rounded p-2 text-center h-100 ${esSeleccionado || esUsuarioActual ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}" ${esMaestro ? `style="cursor:pointer;" onclick="seleccionarEncargado('${u.nombre}')"` : ''}>
-                        <div class="fw-bold text-success small">${u.nombre}${esUsuarioActual ? ' 👤' : ''}</div>
-                        <div class="small text-muted">${cantidadRegistros} registro(s)</div>
-                        <div class="fw-bold text-primary">${totalUsuario.toFixed(2)}</div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function renderizarTablaGeneral() {
-        const tbody = document.getElementById('tablaCuerpo');
-        tbody.innerHTML = '';
-        const regsVista = obtenerRegistrosVista();
-
-        if (regsVista.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">No hay registros de producción en la nube.</td></tr>`;
+        if(pass.trim() === "") {
+            alert("Por favor ingrese la contraseña");
             return;
         }
 
-        const regsOrdenados = [...regsVista].sort((a, b) => b.fecha.localeCompare(a.fecha));
-
-        regsOrdenados.forEach(reg => {
-            let matTexto = reg.materiales.map(m => `• ${m.material}: <strong>${m.cantidad.toFixed(2)}</strong>`).join('<br>');
-            let opsTexto = reg.operarios.join(', ');
-
-            tbody.innerHTML += `
-                <tr>
-                    <td>${reg.fecha}</td>
-                    <td><span class="badge bg-secondary">${reg.mes}</span></td>
-                    <td>${reg.hora}</td>
-                    <td><span class="badge bg-success">${opsTexto}</span></td>
-                    <td><span class="fw-bold text-primary">${reg.trabajo}</span></td>
-                    <td style="font-size: 0.8rem;">${matTexto}</td>
-                    <td><small class="text-muted">${reg.descripcion || '<i>Sin descripción</i>'}</small></td>
-                    <td class="fw-bold text-success">${reg.total.toFixed(2)}</td>
-                    <td><span class="badge bg-info text-dark">${reg.creadoPor || '—'}</span></td>
-                    <td class="text-center">
-                        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="verificarYBorrarRegistro('${reg.idDoc}')">🗑️</button>
-                    </td>
-                </tr>
-            `;
-        });
+        sessionStorage.setItem("usuarioActivo", user);
+        
+        // Cambiar de vista
+        document.getElementById('vistaLogin').classList.remove('active');
+        document.getElementById('vistaPrincipal').classList.add('active');
+        document.getElementById('saludoUsuario').innerText = "Bienvenido, " + user;
+        
+        renderMaestros();
     }
 
-    function verificarYBorrarRegistro(idDoc) {
-        const passwordInput = prompt("🔒 Ingrese la contraseña para eliminar este registro de la nube:");
-        if (passwordInput === "LR123") {
-            db.collection("registros_produccion").doc(idDoc).delete().then(() => {
-                alert("Registro eliminado de la nube correctamente.");
-            });
-        } else if (passwordInput !== null) {
-            alert("❌ Contraseña incorrecta.");
+    function cambiarMaestro() {
+        renderMaestros();
+    }
+
+    function agregarMaestro() {
+        const tipo = document.getElementById('tipoMaestro').value;
+        const valor = document.getElementById('nuevoValor').value.trim();
+
+        if(valor === "") {
+            alert("El campo no puede estar vacío");
+            return;
         }
+
+        catalogos[tipo].push(valor);
+        document.getElementById('nuevoValor').value = "";
+        renderMaestros();
     }
 
-    function renderizarAnalitica() {
-        const tbody = document.getElementById('tablaComparativa');
-        tbody.innerHTML = '';
+    function eliminarMaestro(index) {
+        const tipo = document.getElementById('tipoMaestro').value;
+        catalogos[tipo].splice(index, 1);
+        renderMaestros();
+    }
 
-        let rendimientoOps = {};
-        catalogos.operarios.forEach(op => rendimientoOps[op] = 0);
+    function renderMaestros() {
+        const tipo = document.getElementById('tipoMaestro').value;
+        const tbody = document.getElementById('tablaMaestrosBody');
+        tbody.innerHTML = "";
 
-        obtenerRegistrosVista().forEach(reg => {
-            let proporcion = reg.total / reg.operarios.length;
-            reg.operarios.forEach(op => {
-                if (rendimientoOps[op] !== undefined) rendimientoOps[op] += proporcion;
-            });
-        });
-
-        let arrayOps = Object.keys(rendimientoOps).map(op => ({
-            operario: op,
-            total: rendimientoOps[op]
-        })).sort((a, b) => b.total - a.total);
-
-        arrayOps.forEach((item, index) => {
-            let clasificacion = "Regular";
-            let badgeClass = "bg-secondary";
-            if (index === 0 && item.total > 0) {
-                clasificacion = "🌟 Líder de Producción";
-                badgeClass = "bg-warning text-dark";
-            } else if (item.total > 0) {
-                clasificacion = "Activo";
-                badgeClass = "bg-success";
-            }
-
-            tbody.innerHTML += `
-                <tr>
-                    <td class="fw-bold">${item.operario}</td>
-                    <td class="text-success fw-bold">${item.total.toFixed(2)}</td>
-                    <td><span class="badge ${badgeClass}">${clasificacion}</span></td>
-                </tr>
+        catalogos[tipo].forEach((item, index) => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item}</td>
+                <td><button style="background-color: #d9534f; padding: 6px; width: auto;" onclick="eliminarMaestro(${index})">Eliminar</button></td>
             `;
+            tbody.appendChild(tr);
         });
     }
 
-    function renderizarHoras() {
-        const tbody = document.getElementById('tablaHoras');
-        tbody.innerHTML = '';
-
-        let horasMap = {};
-        const horasPosibles = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
-        horasPosibles.forEach(h => horasMap[h] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            if (horasMap[reg.hora] !== undefined) horasMap[reg.hora] += reg.total;
-        });
-
-        horasPosibles.forEach(h => {
-            tbody.innerHTML += `
-                <tr>
-                    <td><span class="badge bg-light text-dark border">${h}</span></td>
-                    <td class="fw-bold">${horasMap[h].toFixed(2)}</td>
-                </tr>
-            `;
-        });
-    }
-
-    function renderizarMaterialesStock() {
-        const tbody = document.getElementById('tablaMateriales');
-        tbody.innerHTML = '';
-
-        let stockMats = {};
-        catalogos.materiales.forEach(mat => stockMats[mat] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            reg.materiales.forEach(m => {
-                if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
-            });
-        });
-
-        let arrayMats = Object.keys(stockMats).map(mat => ({
-            material: mat,
-            total: stockMats[mat]
-        })).sort((a, b) => b.total - a.total);
-
-        arrayMats.forEach(item => {
-            if (item.total > 0) {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="text-start">${item.material}</td>
-                        <td class="fw-bold text-success">${item.total.toFixed(2)}</td>
-                    </tr>
-                `;
-            }
-        });
-
-        if (arrayMats.every(i => i.total === 0)) {
-            tbody.innerHTML = `<tr><td colspan="2" class="text-muted small">Sin movimientos de materiales.</td></tr>`;
-        }
-    }
-
-    function actualizarGraficas() {
-        let stockMats = {};
-        catalogos.materiales.forEach(mat => stockMats[mat] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            reg.materiales.forEach(m => {
-                if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
-            });
-        });
-
-        let labels = Object.keys(stockMats);
-        let data = Object.values(stockMats);
-
-        const ctxBar = document.getElementById('graficaMateriales').getContext('2d');
-        if (miGraficaBarras) miGraficaBarras.destroy();
-
-        miGraficaBarras = new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{ label: 'Cantidad', data: data, backgroundColor: '#198754' }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { font: { size: 10 } } },
-                    x: { ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 45 } }
-                }
-            }
-        });
-
-        let filteredLabels = [];
-        let filteredData = [];
-        labels.forEach((lab, idx) => {
-            if (data[idx] > 0) {
-                filteredLabels.push(lab);
-                filteredData.push(data[idx]);
-            }
-        });
-
-        const ctxPie = document.getElementById('graficaPastelMateriales').getContext('2d');
-        if (miGraficaPastel) miGraficaPastel.destroy();
-
-        miGraficaPastel = new Chart(ctxPie, {
-            type: 'pie',
-            data: {
-                labels: filteredLabels.length > 0 ? filteredLabels : ['Sin Datos'],
-                datasets: [{
-                    data: filteredData.length > 0 ? filteredData : [1],
-                    backgroundColor: ['#198754', '#ffc107', '#0dcaf0', '#dc3545', '#6c757d', '#20c997', '#fd7e14', '#6610f2']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }
-            }
-        });
-    }
-
-    // EXPORTACIÓN A EXCEL
-    function exportarEXCELGenerico(nombreArchivo, datosFiltrados) {
-        if (datosFiltrados.length === 0) return alert("⚠️ No hay registros para exportar.");
-        let wb = XLSX.utils.book_new();
-        let filasExcel = [];
-        datosFiltrados.forEach(reg => {
-            reg.materiales.forEach(mat => {
-                filasExcel.push({
-                    "Fecha": reg.fecha,
-                    "Periodo": reg.mes,
-                    "Hora": reg.hora,
-                    "Operarios": reg.operarios.join(', '),
-                    "Trabajo": reg.trabajo,
-                    "Material": mat.material,
-                    "Cantidad": mat.cantidad,
-                    "Descripción": reg.descripcion,
-                    "Total": reg.total,
-                    "Registrado por": reg.creadoPor || ''
-                });
-            });
-        });
-        let ws = XLSX.utils.json_to_sheet(filasExcel);
-        XLSX.utils.book_append_sheet(wb, ws, "Producción");
-        XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
-    }
-
-    function exportarExcelDiario() {
-        const f = document.getElementById('inputFechaDiaria').value;
-        exportarEXCELGenerico(`Diario_${f}`, registros.filter(r => r.fecha === f));
-    }
-
-    function exportarExcelSemanal() {
-        const fechaInput = document.getElementById('inputFechaSemanal').value;
-        if (!fechaInput) return alert("Seleccione una fecha.");
-        let d = new Date(fechaInput);
-        let day = d.getDay();
-        let diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        let lunes = new Date(d.setDate(diff)).toISOString().slice(0, 10);
-        let sabado = new Date(new Date(d).setDate(d.getDate() + 5)).toISOString().slice(0, 10);
-        exportarEXCELGenerico(`Semanal_${lunes}_al_${sabado}`, registros.filter(r => r.fecha >= lunes && r.fecha <= sabado));
-    }
-
-    function exportarExcelMensual() {
-        const m = document.getElementById('inputMesMensual').value;
-        exportarEXCELGenerico(`Mensual_${m}`, registros.filter(r => r.mes === m));
+    function cerrarSesion() {
+        sessionStorage.removeItem("usuarioActivo");
+        document.getElementById('vistaPrincipal').classList.remove('active');
+        document.getElementById('vistaLogin').classList.add('active');
+        document.getElementById('password').value = "";
     }
 </script>
+
 </body>
 </html>
