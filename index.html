@@ -125,7 +125,7 @@
 
     <div class="container-fluid my-3">
 
-        <!-- VENTANA 0: PANEL POR ENCARGADO (SOLO VISIBLE PARA EL USUARIO MAESTRO) -->
+        <!-- VENTANA 0: PANEL POR ENCARGADO -->
         <div id="ventanaPanelEncargados" class="sap-window bg-white border mb-3 rounded shadow-sm d-none">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>👥 Panel de Actividad por Encargado</span>
@@ -136,7 +136,7 @@
             </div>
         </div>
 
-        <!-- VENTANA 1: CONFIGURACIÓN DE MAESTROS (NO VISIBLE PARA EL SUPERVISOR, SOLO INGRESA ENCARGADOS) -->
+        <!-- VENTANA 1: CONFIGURACIÓN DE MAESTROS -->
         <div id="ventanaMaestros" class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>📋 Maestro de Datos Globales</span>
@@ -172,7 +172,7 @@
             </div>
         </div>
 
-        <!-- VENTANA 2: REGISTRO DE MOVIMIENTOS (NO VISIBLE PARA EL SUPERVISOR, SOLO INGRESA ENCARGADOS) -->
+        <!-- VENTANA 2: REGISTRO DE MOVIMIENTOS -->
         <div id="ventanaRegistro" class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>📝 Registro de Producción Compartido</span>
@@ -228,10 +228,10 @@
             </div>
         </div>
 
-        <!-- VENTANA 3: REPORTES Y EXCEL -->
+        <!-- VENTANA 3: REPORTES Y EXCEL (EXPORTA EXACTAMENTE LO FILTRADO EN PANTALLA) -->
         <div class="sap-window border-success bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-success text-white p-2 fw-bold border-bottom d-flex justify-content-between">
-                <span>📥 Reportes Logísticos y Descargas (Excel)</span>
+                <span>📥 Reportes Logísticos y Descargas (Excel con Pestaña de Resumen y Operaciones)</span>
                 <span>[Transacción /ZPROD/REPORTS]</span>
             </div>
             <div class="p-3">
@@ -242,7 +242,7 @@
                                 <h6 class="fw-bold">Reporte Diario Completo</h6>
                                 <input type="date" id="inputFechaDiaria" class="form-control form-control-sm mb-2">
                             </div>
-                            <button onclick="exportarExcelDiario()" class="btn btn-success btn-sm w-100">📥 Exportar Diario</button>
+                            <button onclick="exportarExcelDiario()" class="btn btn-success btn-sm w-100">📥 Exportar Diario Filtrado</button>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -251,7 +251,7 @@
                                 <h6 class="fw-bold">Reporte Semanal (L-S)</h6>
                                 <input type="date" id="inputFechaSemanal" class="form-control form-control-sm mb-2">
                             </div>
-                            <button onclick="exportarExcelSemanal()" class="btn btn-primary btn-sm w-100">📥 Exportar Semanal</button>
+                            <button onclick="exportarExcelSemanal()" class="btn btn-primary btn-sm w-100">📥 Exportar Semanal Filtrado</button>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -260,7 +260,7 @@
                                 <h6 class="fw-bold">Reporte Mensual Completo</h6>
                                 <input type="month" id="inputMesMensual" class="form-control form-control-sm mb-2">
                             </div>
-                            <button onclick="exportarExcelMensual()" class="btn btn-dark btn-sm w-100">📥 Exportar Mensual</button>
+                            <button onclick="exportarExcelMensual()" class="btn btn-dark btn-sm w-100">📥 Exportar Mensual Filtrado</button>
                         </div>
                     </div>
                 </div>
@@ -279,6 +279,7 @@
                             <table class="table table-bordered table-striped text-center align-middle" style="font-size: 0.85rem;">
                                 <thead class="table-light">
                                     <tr>
+                                        <th>Pos.</th>
                                         <th>Operario</th>
                                         <th>Total Producido</th>
                                         <th>Clasificación</th>
@@ -420,8 +421,6 @@
 
     // ==========================================
     // USUARIOS DEL SISTEMA (MULTIUSUARIO)
-    // Edita este listado para cambiar los 6 encargados,
-    // sus usuarios y contraseñas de acceso.
     // ==========================================
     const usuariosValidos = [
         { user: "RECI 1", pass: "LR001", nombre: "Encargado 1", esMaestro: false },
@@ -430,8 +429,6 @@
         { user: "RECI 4", pass: "LR004", nombre: "Encargado 4", esMaestro: false },
         { user: "RECI 5", pass: "LR005", nombre: "Encargado 5", esMaestro: false },
         { user: "RECI 6", pass: "LR006", nombre: "Encargado 6", esMaestro: false },
-        // Usuario maestro: único que puede ver el Panel de Actividad por Encargado.
-        // Cambia el usuario/contraseña por unos que solo tú conozcas.
         { user: "MAESTRO", pass: "MASTER2026", nombre: "Supervisor General", esMaestro: true }
     ];
 
@@ -447,8 +444,6 @@
             const btn = e.target.querySelector('button[type="submit"]');
             if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
 
-            // Autenticación anónima con Firebase: necesaria para que las reglas
-            // de seguridad de Firestore solo permitan acceso a quien entró por la app.
             auth.signInAnonymously().then(() => {
                 sessionStorage.setItem('sap_logged_in', 'true');
                 sessionStorage.setItem('sap_user', encontrado.user);
@@ -471,8 +466,6 @@
         app.classList.add('d-flex');
         document.getElementById('lblUsuarioLogueado').innerText = "Usuario: " + sessionStorage.getItem('sap_user_nombre');
 
-        // Solo el usuario maestro puede ver el Panel de Actividad por Encargado.
-        // El supervisor NO ingresa datos, solo supervisa: se ocultan los formularios de captura.
         const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
         document.getElementById('ventanaPanelEncargados').classList.toggle('d-none', !esMaestro);
         document.getElementById('ventanaMaestros').classList.toggle('d-none', esMaestro);
@@ -490,14 +483,11 @@
     }
 
     window.onload = function() {
-        // Espera a que Firebase confirme el estado de autenticación (persiste entre recargas)
-        // antes de mostrar la app, para evitar pantallazos de error de permisos.
         auth.onAuthStateChanged((user) => {
             if (sessionStorage.getItem('sap_logged_in') === 'true') {
                 if (user) {
                     mostrarApp();
                 } else {
-                    // La sesión de Firebase se perdió (ej. caché borrada): re-autentica antes de continuar.
                     auth.signInAnonymously().then(mostrarApp).catch(() => {
                         sessionStorage.clear();
                         location.reload();
@@ -507,7 +497,6 @@
         });
     };
 
-    // --- LÓGICA DEL SISTEMA DE PRODUCCIÓN CON FIREBASE ---
     let catalogos = {
         operarios: ["BRICEIDI", "MARIA", "JUAN", "ALIOSKA", "WALTER", "RANDOLFO"],
         trabajos: ["PROYECTOS", "COMPACTADOS", "PREPARANDO MATERIAL", "LIMPIANDO", "CORTANDO", "OTROS"],
@@ -516,8 +505,6 @@
     let registros = [];
     let miGraficaBarras = null;
     let miGraficaPastel = null;
-    // El supervisor puede hacer clic en cada tarjeta para cambiar de encargado a encargado.
-    // null = ver todos los encargados a la vez.
     let filtroEncargadoActivo = null;
 
     function obtenerRegistrosVista() {
@@ -529,7 +516,7 @@
 
     function seleccionarEncargado(nombre) {
         const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
-        if (!esMaestro) return; // Solo el supervisor puede cambiar el filtro
+        if (!esMaestro) return;
         filtroEncargadoActivo = (filtroEncargadoActivo === nombre) ? null : nombre;
         renderizarTodo();
     }
@@ -545,8 +532,6 @@
             agregarFilaMaterial();
         }
 
-        // ESCUCHADORES EN TIEMPO REAL DE FIREBASE (ONSNAPSHOT)
-        // Todos los encargados que ingresen ven los mismos datos al instante.
         db.collection("configuracion").doc("catalogos").onSnapshot((doc) => {
             if (doc.exists) {
                 catalogos = doc.data();
@@ -705,7 +690,6 @@
         contenedor.appendChild(div);
     }
 
-    // REGISTRO DE PRODUCCIÓN (GUARDAR EN FIREBASE)
     document.getElementById('formProd').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -762,7 +746,6 @@
         actualizarGraficas();
     }
 
-    // PANEL DE 6 TARJETAS, UNA POR CADA ENCARGADO
     function renderizarPanelEncargados() {
         const cont = document.getElementById('panelEncargados');
         cont.innerHTML = '';
@@ -877,6 +860,7 @@
 
             tbody.innerHTML += `
                 <tr>
+                    <td><span class="badge bg-dark">#${index + 1}</span></td>
                     <td class="fw-bold">${item.operario}</td>
                     <td class="text-success fw-bold">${item.total.toFixed(2)}</td>
                     <td><span class="badge ${badgeClass}">${clasificacion}</span></td>
@@ -1003,10 +987,37 @@
         });
     }
 
-    // EXPORTACIÓN A EXCEL
-    function exportarEXCELGenerico(nombreArchivo, datosFiltrados) {
-        if (datosFiltrados.length === 0) return alert("⚠️ No hay registros para exportar.");
+    // EXPORTACIÓN A EXCEL FILTRADA CON PESTAÑA RESUMEN DE OPERACIONES, ACUMULADOS Y PERSONAS
+    function exportarEXCELGenerico(nombreArchivo, datosBaseFecha) {
+        let datosFiltrados = datosBaseFecha;
+        if (filtroEncargadoActivo) {
+            datosFiltrados = datosBaseFecha.filter(r => r.creadoPor === filtroEncargadoActivo);
+        }
+
+        if (datosFiltrados.length === 0) return alert("⚠️ No hay registros para exportar con los filtros y fechas seleccionados.");
+        
         let wb = XLSX.utils.book_new();
+        
+        // Pestaña 0: Resumen General (Muestra operaciones, acumulado total y personas únicas que trabajaron)
+        let totalOperaciones = datosFiltrados.length;
+        let acumuladoTotalGeneral = datosFiltrados.reduce((sum, r) => sum + (r.total || 0), 0);
+        let personasUnicasSet = new Set();
+        datosFiltrados.forEach(r => {
+            if (r.operarios && Array.isArray(r.operarios)) {
+                r.operarios.forEach(op => personasUnicasSet.add(op));
+            }
+        });
+
+        let filasResumenEjecutivo = [
+            { "Métrica de Producción": "Total de Operaciones Registradas", "Valor": totalOperaciones },
+            { "Métrica de Producción": "Cantidad Acumulada Total", "Valor": acumuladoTotalGeneral },
+            { "Métrica de Producción": "Total de Personas (Operarios) Distintas Involucradas", "Valor": personasUnicasSet.size },
+            { "Métrica de Producción": "Nombres de los Operarios Involucrados", "Valor": Array.from(personasUnicasSet).join(', ') }
+        ];
+        let wsResumenEjecutivo = XLSX.utils.json_to_sheet(filasResumenEjecutivo);
+        XLSX.utils.book_append_sheet(wb, wsResumenEjecutivo, "Resumen General");
+
+        // Pestaña 1: Detalle de Movimientos Filtrados
         let filasExcel = [];
         datosFiltrados.forEach(reg => {
             reg.materiales.forEach(mat => {
@@ -1019,19 +1030,61 @@
                     "Material": mat.material,
                     "Cantidad": mat.cantidad,
                     "Descripción": reg.descripcion,
-                    "Total": reg.total,
+                    "Total General": reg.total,
                     "Registrado por": reg.creadoPor || ''
                 });
             });
         });
-        let ws = XLSX.utils.json_to_sheet(filasExcel);
-        XLSX.utils.book_append_sheet(wb, ws, "Producción");
+        let wsDetalle = XLSX.utils.json_to_sheet(filasExcel);
+        XLSX.utils.book_append_sheet(wb, wsDetalle, "Movimientos");
+
+        // Pestaña 2: Resumen / Stock Total por Material
+        let stockMats = {};
+        catalogos.materiales.forEach(mat => stockMats[mat] = 0);
+        datosFiltrados.forEach(reg => {
+            reg.materiales.forEach(m => {
+                if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
+            });
+        });
+        
+        let filasMateriales = Object.keys(stockMats).map(mat => ({
+            "Material": mat,
+            "Total Producido": stockMats[mat]
+        })).filter(item => item["Total Producido"] > 0);
+        
+        let wsMateriales = XLSX.utils.json_to_sheet(filasMateriales);
+        XLSX.utils.book_append_sheet(wb, wsMateriales, "Resumen Materiales");
+
+        // Pestaña 3: Ranking de Operarios
+        let rendimientoOps = {};
+        catalogos.operarios.forEach(op => rendimientoOps[op] = 0);
+        datosFiltrados.forEach(reg => {
+            let proporcion = reg.total / reg.operarios.length;
+            reg.operarios.forEach(op => {
+                if (rendimientoOps[op] !== undefined) rendimientoOps[op] += proporcion;
+            });
+        });
+
+        let filasOperarios = Object.keys(rendimientoOps).map((op) => ({
+            "Operario": op,
+            "Total Producido": rendimientoOps[op]
+        })).sort((a, b) => b["Total Producido"] - a["Total Producido"]);
+
+        filasOperarios.forEach((item, index) => {
+            item["Posición"] = `#${index + 1}`;
+            item["Clasificación"] = (index === 0 && item["Total Producido"] > 0) ? "🌟 Líder de Producción" : (item["Total Producido"] > 0 ? "Activo" : "Sin actividad");
+        });
+
+        let wsOperarios = XLSX.utils.json_to_sheet(filasOperarios);
+        XLSX.utils.book_append_sheet(wb, wsOperarios, "Ranking Operarios");
+
         XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
     }
 
     function exportarExcelDiario() {
         const f = document.getElementById('inputFechaDiaria').value;
-        exportarEXCELGenerico(`Diario_${f}`, registros.filter(r => r.fecha === f));
+        const sufijo = filtroEncargadoActivo ? `_${filtroEncargadoActivo}` : '_Global';
+        exportarEXCELGenerico(`Diario_${f}${sufijo}`, registros.filter(r => r.fecha === f));
     }
 
     function exportarExcelSemanal() {
@@ -1042,12 +1095,14 @@
         let diff = d.getDate() - day + (day === 0 ? -6 : 1);
         let lunes = new Date(d.setDate(diff)).toISOString().slice(0, 10);
         let sabado = new Date(new Date(d).setDate(d.getDate() + 5)).toISOString().slice(0, 10);
-        exportarEXCELGenerico(`Semanal_${lunes}_al_${sabado}`, registros.filter(r => r.fecha >= lunes && r.fecha <= sabado));
+        const sufijo = filtroEncargadoActivo ? `_${filtroEncargadoActivo}` : '_Global';
+        exportarEXCELGenerico(`Semanal_${lunes}_al_${sabado}${sufijo}`, registros.filter(r => r.fecha >= lunes && r.fecha <= sabado));
     }
 
     function exportarExcelMensual() {
         const m = document.getElementById('inputMesMensual').value;
-        exportarEXCELGenerico(`Mensual_${m}`, registros.filter(r => r.mes === m));
+        const sufijo = filtroEncargadoActivo ? `_${filtroEncargadoActivo}` : '_Global';
+        exportarEXCELGenerico(`Mensual_${m}${sufijo}`, registros.filter(r => r.mes === m));
     }
 </script>
 </body>
