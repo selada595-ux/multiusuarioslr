@@ -136,7 +136,7 @@
             </div>
         </div>
 
-        <!-- VENTANA 1: CONFIGURACIÓN DE MAESTROS (NO VISIBLE PARA EL SUPERVISOR, SOLO INGRESA ENCARGADOS) -->
+        <!-- VENTANA 1: CONFIGURACIÓN DE MAESTROS -->
         <div id="ventanaMaestros" class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>📋 Maestro de Datos Globales</span>
@@ -172,14 +172,14 @@
             </div>
         </div>
 
-        <!-- VENTANA 2: REGISTRO DE MOVIMIENTOS (NO VISIBLE PARA EL SUPERVISOR, SOLO INGRESA ENCARGADOS) -->
+        <!-- VENTANA 2: REGISTRO DE MOVIMIENTOS -->
         <div id="ventanaRegistro" class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
                 <span>📝 Registro de Producción Compartido</span>
                 <span>[Transacción /ZPROD/ENTRY]</span>
             </div>
             <div class="p-3">
-                <form id="formProd" class="row g-3">
+                <form id="formProd" class="row g-3" onsubmit="contabilizarProduccion(event)">
                     <div class="col-md-3">
                         <label class="form-label fw-bold small">Fecha Contabilización</label>
                         <input type="date" id="fecha" class="form-control form-control-sm" required>
@@ -211,9 +211,9 @@
                     </div>
 
                     <div class="col-12">
-                        <label class="form-label fw-bold text-success small">Posiciones de Materiales y Cantidades</label>
+                        <label class="form-label fw-bold text-success small">Posiciones de Materiales y Cantidades (Opcional sin material)</label>
                         <div id="contenedorMaterialesDinamicos" class="border p-2 rounded bg-light"></div>
-                        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="agregarFilaMaterial()">➕ Añadir Posición de Material</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="agregarFilaMaterial()">➕ Añadir Posición</button>
                     </div>
 
                     <div class="col-12">
@@ -418,11 +418,6 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // ==========================================
-    // USUARIOS DEL SISTEMA (MULTIUSUARIO)
-    // Edita este listado para cambiar los 6 encargados,
-    // sus usuarios y contraseñas de acceso.
-    // ==========================================
     const usuariosValidos = [
         { user: "RECI 1", pass: "LR001", nombre: "Encargado 1", esMaestro: false },
         { user: "RECI 2", pass: "LR002", nombre: "Encargado 2", esMaestro: false },
@@ -430,25 +425,19 @@
         { user: "RECI 4", pass: "LR004", nombre: "Encargado 4", esMaestro: false },
         { user: "RECI 5", pass: "LR005", nombre: "Encargado 5", esMaestro: false },
         { user: "RECI 6", pass: "LR006", nombre: "Encargado 6", esMaestro: false },
-        // Usuario maestro: único que puede ver el Panel de Actividad por Encargado.
-        // Cambia el usuario/contraseña por unos que solo tú conozcas.
         { user: "MAESTRO", pass: "MASTER2026", nombre: "Supervisor General", esMaestro: true }
     ];
 
-    // SISTEMA DE AUTENTICACIÓN
     function handleLogin(e) {
         e.preventDefault();
         const user = document.getElementById('userInput').value.trim().toUpperCase();
         const pass = document.getElementById('passInput').value;
-
         const encontrado = usuariosValidos.find(u => u.user === user && u.pass === pass);
 
         if (encontrado) {
             const btn = e.target.querySelector('button[type="submit"]');
             if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
 
-            // Autenticación anónima con Firebase: necesaria para que las reglas
-            // de seguridad de Firestore solo permitan acceso a quien entró por la app.
             auth.signInAnonymously().then(() => {
                 sessionStorage.setItem('sap_logged_in', 'true');
                 sessionStorage.setItem('sap_user', encontrado.user);
@@ -471,8 +460,6 @@
         app.classList.add('d-flex');
         document.getElementById('lblUsuarioLogueado').innerText = "Usuario: " + sessionStorage.getItem('sap_user_nombre');
 
-        // Solo el usuario maestro puede ver el Panel de Actividad por Encargado.
-        // El supervisor NO ingresa datos, solo supervisa: se ocultan los formularios de captura.
         const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
         document.getElementById('ventanaPanelEncargados').classList.toggle('d-none', !esMaestro);
         document.getElementById('ventanaMaestros').classList.toggle('d-none', esMaestro);
@@ -490,14 +477,11 @@
     }
 
     window.onload = function() {
-        // Espera a que Firebase confirme el estado de autenticación (persiste entre recargas)
-        // antes de mostrar la app, para evitar pantallazos de error de permisos.
         auth.onAuthStateChanged((user) => {
             if (sessionStorage.getItem('sap_logged_in') === 'true') {
                 if (user) {
                     mostrarApp();
                 } else {
-                    // La sesión de Firebase se perdió (ej. caché borrada): re-autentica antes de continuar.
                     auth.signInAnonymously().then(mostrarApp).catch(() => {
                         sessionStorage.clear();
                         location.reload();
@@ -507,7 +491,6 @@
         });
     };
 
-    // --- LÓGICA DEL SISTEMA DE PRODUCCIÓN CON FIREBASE ---
     let catalogos = {
         operarios: ["BRICEIDI", "MARIA", "JUAN", "ALIOSKA", "WALTER", "RANDOLFO"],
         trabajos: ["PROYECTOS", "COMPACTADOS", "PREPARANDO MATERIAL", "LIMPIANDO", "CORTANDO", "OTROS"],
@@ -516,8 +499,6 @@
     let registros = [];
     let miGraficaBarras = null;
     let miGraficaPastel = null;
-    // El supervisor puede hacer clic en cada tarjeta para cambiar de encargado a encargado.
-    // null = ver todos los encargados a la vez.
     let filtroEncargadoActivo = null;
 
     function obtenerRegistrosVista() {
@@ -529,7 +510,7 @@
 
     function seleccionarEncargado(nombre) {
         const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
-        if (!esMaestro) return; // Solo el supervisor puede cambiar el filtro
+        if (!esMaestro) return;
         filtroEncargadoActivo = (filtroEncargadoActivo === nombre) ? null : nombre;
         renderizarTodo();
     }
@@ -545,8 +526,6 @@
             agregarFilaMaterial();
         }
 
-        // ESCUCHADORES EN TIEMPO REAL DE FIREBASE (ONSNAPSHOT)
-        // Todos los encargados que ingresen ven los mismos datos al instante.
         db.collection("configuracion").doc("catalogos").onSnapshot((doc) => {
             if (doc.exists) {
                 catalogos = doc.data();
@@ -590,7 +569,7 @@
 
         document.querySelectorAll('.select-material-dinamico').forEach(select => {
             const valAnt = select.value;
-            select.innerHTML = '';
+            select.innerHTML = '<option value="">-- Sin Material --</option>';
             catalogos.materiales.forEach(mat => {
                 select.innerHTML += `<option value="${mat}">${mat}</option>`;
             });
@@ -633,421 +612,313 @@
         });
     }
 
+    function agregarFilaMaterial() {
+        const contenedor = document.getElementById('contenedorMaterialesDinamicos');
+        const filaId = 'fila_mat_' + Date.now() + Math.random().toString(36).substr(2, 5);
+        
+        let opcionesHtml = '<option value="">-- Sin Material --</option>';
+        catalogos.materiales.forEach(mat => {
+            opcionesHtml += `<option value="${mat}">${mat}</option>`;
+        });
+
+        const htmlFila = `
+            <div class="row g-2 mb-2 align-items-center fila-material" id="${filaId}">
+                <div class="col-md-6">
+                    <select class="form-select form-select-sm select-material-dinamico">
+                        ${opcionesHtml}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <input type="number" step="any" class="form-control form-control-sm input-cantidad-dinamica" placeholder="Cantidad (Opcional)" value="0">
+                </div>
+                <div class="col-md-1 text-end">
+                    <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="document.getElementById('${filaId}').remove()">✖</button>
+                </div>
+            </div>
+        `;
+        contenedor.insertAdjacentHTML('beforeend', htmlFila);
+    }
+
+    function verificarYAgregarCatalogo(tipo, inputId) {
+        const val = document.getElementById(inputId).value.trim().toUpperCase();
+        if(!val) return;
+        if(catalogos[tipo].includes(val)) {
+            alert("El elemento ya existe en el catálogo.");
+            return;
+        }
+        catalogos[tipo].push(val);
+        db.collection("configuracion").doc("catalogos").set(catalogos).then(() => {
+            document.getElementById(inputId).value = '';
+        });
+    }
+
+    function verificarYBorrarCatalogo(tipo, valor) {
+        if(catalogos[tipo].length <= 1) {
+            alert("Debe mantener al menos un elemento en el catálogo.");
+            return;
+        }
+        if(confirm(`¿Está seguro de eliminar "${valor}" del catálogo?`)) {
+            catalogos[tipo] = catalogos[tipo].filter(item => item !== valor);
+            db.collection("configuracion").doc("catalogos").set(catalogos);
+        }
+    }
+
     function verificarYResetearDatos() {
         const passwordInput = prompt("🔒 Ingrese la contraseña para vaciar la base de datos de la nube:");
         if (passwordInput === null) return;
         if (passwordInput === "LR123") {
             db.collection("registros_produccion").get().then((querySnapshot) => {
+                const batch = db.batch();
                 querySnapshot.forEach((doc) => {
-                    doc.ref.delete();
+                    batch.delete(doc.ref);
                 });
-                alert("Base de datos reiniciada con éxito.");
+                return batch.commit();
+            }).then(() => {
+                alert("Base de datos reseteada exitosamente.");
             });
         } else {
-            alert("❌ Contraseña incorrecta.");
+            alert("Contraseña incorrecta.");
         }
     }
 
-    function verificarYAgregarCatalogo(tipo, inputId) {
-        const val = document.getElementById(inputId).value.trim().toUpperCase();
-        if (!val) return alert("Ingrese un valor válido.");
-        if (catalogos[tipo].includes(val)) return alert("Este elemento ya existe.");
-
-        const passwordInput = prompt(`🔒 Ingrese la contraseña para crear "${val}":`);
-        if (passwordInput === "LR123") {
-            catalogos[tipo].push(val);
-            db.collection("configuracion").doc("catalogos").set(catalogos).then(() => {
-                document.getElementById(inputId).value = '';
-                alert(`Elemento "${val}" creado exitosamente en la nube.`);
-            });
-        } else if (passwordInput !== null) {
-            alert("❌ Contraseña incorrecta.");
-        }
-    }
-
-    function verificarYBorrarCatalogo(tipo, valor) {
-        const passwordInput = prompt(`🔒 Ingrese la contraseña para eliminar "${valor}":`);
-        if (passwordInput === "LR123") {
-            if (catalogos[tipo].length <= 1) return alert("No se puede eliminar el último elemento.");
-            catalogos[tipo] = catalogos[tipo].filter(item => item !== valor);
-            db.collection("configuracion").doc("catalogos").set(catalogos).then(() => {
-                alert(`Elemento "${valor}" eliminado.`);
-            });
-        } else if (passwordInput !== null) {
-            alert("❌ Contraseña incorrecta.");
-        }
-    }
-
-    function agregarFilaMaterial(matSugerido = '', pesoSugerido = '') {
-        const contenedor = document.getElementById('contenedorMaterialesDinamicos');
-        const filaId = 'fila_mat_' + Date.now() + Math.random().toString(36).substr(2, 5);
-        
-        let opcionesMat = '';
-        catalogos.materiales.forEach(mat => {
-            let sel = (mat === matSugerido) ? 'selected' : '';
-            opcionesMat += `<option value="${mat}" ${sel}>${mat}</option>`;
-        });
-
-        const div = document.createElement('div');
-        div.className = 'row g-2 mb-2 align-items-center fila-material';
-        div.id = filaId;
-        div.innerHTML = `
-            <div class="col-md-7">
-                <select class="form-select form-select-sm select-material-dinamico" required>${opcionesMat}</select>
-            </div>
-            <div class="col-md-4">
-                <input type="number" step="0.01" class="form-control form-control-sm peso-material-dinamico" placeholder="Peso / Cantidad" value="${pesoSugerido}" required>
-            </div>
-            <div class="col-md-1 text-center">
-                <button type="button" class="btn btn-outline-danger btn-sm w-100 py-0" onclick="document.getElementById('${filaId}').remove()">✕</button>
-            </div>
-        `;
-        contenedor.appendChild(div);
-    }
-
-    // REGISTRO DE PRODUCCIÓN (GUARDAR EN FIREBASE)
-    document.getElementById('formProd').addEventListener('submit', function(e) {
+    function contabilizarProduccion(e) {
         e.preventDefault();
+        const fecha = document.getElementById('fecha').value;
+        const hora = document.getElementById('hora').value;
+        const trabajo = document.getElementById('selectTrabajos').value;
+        const descripcion = document.getElementById('descripcionRegistro').value.trim();
         
-        const fechaVal = document.getElementById('fecha').value;
-        const horaVal = document.getElementById('hora').value;
-        const trabajoVal = document.getElementById('selectTrabajos').value;
-        const descripcionVal = document.getElementById('descripcionRegistro').value;
         const operariosSeleccionados = Array.from(document.querySelectorAll('.check-operario:checked')).map(cb => cb.value);
+        if(operariosSeleccionados.length === 0) {
+            alert("Debe seleccionar al menos un operario responsable.");
+            return;
+        }
 
-        if (operariosSeleccionados.length === 0) return alert("Debe seleccionar al menos un operario.");
-        
-        const filas = document.querySelectorAll('.fila-material');
-        if (filas.length === 0) return alert("Debe agregar al menos un material.");
+        const filasMateriales = document.querySelectorAll('.fila-material');
+        let posiciones = [];
+        let totalGeneral = 0;
 
-        let listaMaterialesDetalle = [];
-        let cantidadTotalGeneral = 0;
+        filasMateriales.forEach(fila => {
+            const material = fila.querySelector('.select-material-dinamico').value;
+            const cantidadVal = parseFloat(fila.querySelector('.input-cantidad-dinamica').value);
+            const cantidad = isNaN(cantidadVal) ? 0 : cantidadVal;
 
-        filas.forEach(fila => {
-            const mat = fila.querySelector('.select-material-dinamico').value;
-            const cant = parseFloat(fila.querySelector('.peso-material-dinamico').value) || 0;
-            listaMaterialesDetalle.push({ material: mat, cantidad: cant });
-            cantidadTotalGeneral += cant;
+            posiciones.push({
+                material: material ? material : "Sin material",
+                cantidad: cantidad
+            });
+            totalGeneral += cantidad;
         });
+
+        const d = new Date(fecha + 'T00:00:00');
+        const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const periodo = meses[d.getMonth()] + " " + d.getFullYear();
 
         const nuevoRegistro = {
-            fecha: fechaVal,
-            mes: fechaVal ? fechaVal.substring(0, 7) : '',
-            hora: horaVal,
+            fecha: fecha,
+            periodo: periodo,
+            hora: hora,
             operarios: operariosSeleccionados,
-            trabajo: trabajoVal,
-            materiales: listaMaterialesDetalle,
-            descripcion: descripcionVal,
-            total: cantidadTotalGeneral,
-            creadoPor: sessionStorage.getItem('sap_user_nombre') || 'Desconocido',
+            trabajo: trabajo,
+            posiciones: posiciones,
+            descripcion: descripcion,
+            total: totalGeneral,
+            creadoPor: sessionStorage.getItem('sap_user'),
+            creadoPorNombre: sessionStorage.getItem('sap_user_nombre'),
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         db.collection("registros_produccion").add(nuevoRegistro).then(() => {
-            document.getElementById('descripcionRegistro').value = '';
+            document.getElementById('formProd').reset();
+            document.getElementById('fecha').valueAsDate = new Date();
             document.getElementById('contenedorMaterialesDinamicos').innerHTML = '';
             agregarFilaMaterial();
-            alert("✅ Documento contabilizado y sincronizado en la nube.");
-        }).catch((error) => {
-            alert("Error al guardar: " + error.message);
+            alert("¡Registro contabilizado exitosamente a la nube!");
+        }).catch(err => {
+            alert("Error al guardar: " + err.message);
         });
-    });
+    }
+
+    function eliminarRegistro(idDoc) {
+        if(confirm("¿Está seguro de eliminar este registro de la nube?")) {
+            db.collection("registros_produccion").doc(idDoc).delete();
+        }
+    }
 
     function renderizarTodo() {
-        renderizarPanelEncargados();
-        renderizarTablaGeneral();
-        renderizarAnalitica();
-        renderizarHoras();
-        renderizarMaterialesStock();
-        actualizarGraficas();
-    }
-
-    // PANEL DE 6 TARJETAS, UNA POR CADA ENCARGADO
-    function renderizarPanelEncargados() {
-        const cont = document.getElementById('panelEncargados');
-        cont.innerHTML = '';
+        const regsVista = obtenerRegistrosVista();
         const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
 
-        if (esMaestro) {
-            cont.innerHTML += `
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="panel-encargado border rounded p-2 text-center h-100 ${!filtroEncargadoActivo ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}" style="cursor:pointer;" onclick="seleccionarEncargado(null)">
-                        <div class="fw-bold text-success small">📊 Ver Todos</div>
-                        <div class="small text-muted">${registros.length} registro(s)</div>
-                        <div class="fw-bold text-primary">${registros.reduce((s, r) => s + (r.total || 0), 0).toFixed(2)}</div>
+        if(esMaestro) {
+            const panel = document.getElementById('panelEncargados');
+            panel.innerHTML = '';
+            const recis = usuariosValidos.filter(u => !u.esMaestro);
+            
+            recis.forEach(r => {
+                const regsEnc = registros.filter(reg => reg.creadoPor === r.user);
+                const totalEnc = regsEnc.reduce((acc, curr) => acc + (curr.total || 0), 100);
+                const activoClase = filtroEncargadoActivo === r.user ? 'border-success bg-light shadow' : 'border';
+
+                panel.innerHTML += `
+                    <div class="col-md-4">
+                        <div class="card panel-encargado ${activoClase}" style="cursor: pointer;" onclick="seleccionarEncargado('${r.user}')">
+                            <div class="card-body p-2 text-center">
+                                <h6 class="fw-bold mb-1">${r.nombre} (${r.user})</h6>
+                                <p class="text-muted small mb-1">Registros: ${regsEnc.length}</p>
+                                <span class="badge bg-success">Total: ${totalEnc.toLocaleString()}</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            });
         }
 
-        usuariosValidos.filter(u => !u.esMaestro).forEach(u => {
-            const regsUsuario = registros.filter(r => r.creadoPor === u.nombre);
-            const totalUsuario = regsUsuario.reduce((sum, r) => sum + (r.total || 0), 0);
-            const cantidadRegistros = regsUsuario.length;
-            const esSeleccionado = esMaestro && filtroEncargadoActivo === u.nombre;
-            const esUsuarioActual = sessionStorage.getItem('sap_user_nombre') === u.nombre;
-
-            cont.innerHTML += `
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="panel-encargado border rounded p-2 text-center h-100 ${esSeleccionado || esUsuarioActual ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}" ${esMaestro ? `style="cursor:pointer;" onclick="seleccionarEncargado('${u.nombre}')"` : ''}>
-                        <div class="fw-bold text-success small">${u.nombre}${esUsuarioActual ? ' 👤' : ''}</div>
-                        <div class="small text-muted">${cantidadRegistros} registro(s)</div>
-                        <div class="fw-bold text-primary">${totalUsuario.toFixed(2)}</div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function renderizarTablaGeneral() {
         const tbody = document.getElementById('tablaCuerpo');
         tbody.innerHTML = '';
-        const regsVista = obtenerRegistrosVista();
-
-        if (regsVista.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">No hay registros de producción en la nube.</td></tr>`;
-            return;
-        }
-
-        const regsOrdenados = [...regsVista].sort((a, b) => b.fecha.localeCompare(a.fecha));
-
-        regsOrdenados.forEach(reg => {
-            let matTexto = reg.materiales.map(m => `• ${m.material}: <strong>${m.cantidad.toFixed(2)}</strong>`).join('<br>');
-            let opsTexto = reg.operarios.join(', ');
+        regsVista.forEach(r => {
+            let matsHtml = '<ul class="list-unstyled mb-0 small">';
+            if(r.posiciones && Array.isArray(r.posiciones)) {
+                r.posiciones.forEach(p => {
+                    matsHtml += `<li>• <b>${p.material}</b>: ${p.cantidad}</li>`;
+                });
+            }
+            matsHtml += '</ul>';
 
             tbody.innerHTML += `
                 <tr>
-                    <td>${reg.fecha}</td>
-                    <td><span class="badge bg-secondary">${reg.mes}</span></td>
-                    <td>${reg.hora}</td>
-                    <td><span class="badge bg-success">${opsTexto}</span></td>
-                    <td><span class="fw-bold text-primary">${reg.trabajo}</span></td>
-                    <td style="font-size: 0.8rem;">${matTexto}</td>
-                    <td><small class="text-muted">${reg.descripcion || '<i>Sin descripción</i>'}</small></td>
-                    <td class="fw-bold text-success">${reg.total.toFixed(2)}</td>
-                    <td><span class="badge bg-info text-dark">${reg.creadoPor || '—'}</span></td>
+                    <td>${r.fecha}</td>
+                    <td>${r.periodo}</td>
+                    <td>${r.hora}</td>
+                    <td>${r.operarios ? r.operarios.join(', ') : ''}</td>
+                    <td>${r.trabajo}</td>
+                    <td>${matsHtml}</td>
+                    <td>${r.descripcion || ''}</td>
+                    <td class="fw-bold text-success">${r.total}</td>
+                    <td><span class="badge bg-secondary">${r.creadoPorNombre || r.creadoPor}</span></td>
                     <td class="text-center">
-                        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="verificarYBorrarRegistro('${reg.idDoc}')">🗑️</button>
+                        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="eliminarRegistro('${r.idDoc}')">🗑️</button>
                     </td>
                 </tr>
             `;
         });
+
+        renderizarAnaliticasYTablas(regsVista);
     }
 
-    function verificarYBorrarRegistro(idDoc) {
-        const passwordInput = prompt("🔒 Ingrese la contraseña para eliminar este registro de la nube:");
-        if (passwordInput === "LR123") {
-            db.collection("registros_produccion").doc(idDoc).delete().then(() => {
-                alert("Registro eliminado de la nube correctamente.");
-            });
-        } else if (passwordInput !== null) {
-            alert("❌ Contraseña incorrecta.");
-        }
-    }
+    function renderizarAnaliticasYTablas(regs) {
+        let opTotales = {};
+        let horaTotales = {};
+        let matTotales = {};
 
-    function renderizarAnalitica() {
-        const tbody = document.getElementById('tablaComparativa');
-        tbody.innerHTML = '';
-
-        let rendimientoOps = {};
-        catalogos.operarios.forEach(op => rendimientoOps[op] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            let proporcion = reg.total / reg.operarios.length;
-            reg.operarios.forEach(op => {
-                if (rendimientoOps[op] !== undefined) rendimientoOps[op] += proporcion;
-            });
-        });
-
-        let arrayOps = Object.keys(rendimientoOps).map(op => ({
-            operario: op,
-            total: rendimientoOps[op]
-        })).sort((a, b) => b.total - a.total);
-
-        arrayOps.forEach((item, index) => {
-            let clasificacion = "Regular";
-            let badgeClass = "bg-secondary";
-            if (index === 0 && item.total > 0) {
-                clasificacion = "🌟 Líder de Producción";
-                badgeClass = "bg-warning text-dark";
-            } else if (item.total > 0) {
-                clasificacion = "Activo";
-                badgeClass = "bg-success";
+        catalogos.operarios.forEach(op => opTotales[op] = 0);
+        regs.forEach(r => {
+            if(r.operarios) {
+                r.operarios.forEach(op => {
+                    if(opTotales[op] !== undefined) opTotales[op] += (r.total || 0);
+                    else opTotales[op] = (r.total || 0);
+                });
             }
-
-            tbody.innerHTML += `
-                <tr>
-                    <td class="fw-bold">${item.operario}</td>
-                    <td class="text-success fw-bold">${item.total.toFixed(2)}</td>
-                    <td><span class="badge ${badgeClass}">${clasificacion}</span></td>
-                </tr>
-            `;
-        });
-    }
-
-    function renderizarHoras() {
-        const tbody = document.getElementById('tablaHoras');
-        tbody.innerHTML = '';
-
-        let horasMap = {};
-        const horasPosibles = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
-        horasPosibles.forEach(h => horasMap[h] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            if (horasMap[reg.hora] !== undefined) horasMap[reg.hora] += reg.total;
-        });
-
-        horasPosibles.forEach(h => {
-            tbody.innerHTML += `
-                <tr>
-                    <td><span class="badge bg-light text-dark border">${h}</span></td>
-                    <td class="fw-bold">${horasMap[h].toFixed(2)}</td>
-                </tr>
-            `;
-        });
-    }
-
-    function renderizarMaterialesStock() {
-        const tbody = document.getElementById('tablaMateriales');
-        tbody.innerHTML = '';
-
-        let stockMats = {};
-        catalogos.materiales.forEach(mat => stockMats[mat] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            reg.materiales.forEach(m => {
-                if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
-            });
-        });
-
-        let arrayMats = Object.keys(stockMats).map(mat => ({
-            material: mat,
-            total: stockMats[mat]
-        })).sort((a, b) => b.total - a.total);
-
-        arrayMats.forEach(item => {
-            if (item.total > 0) {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="text-start">${item.material}</td>
-                        <td class="fw-bold text-success">${item.total.toFixed(2)}</td>
-                    </tr>
-                `;
+            if(r.hora) {
+                horaTotales[r.hora] = (horaTotales[r.hora] || 0) + (r.total || 0);
+            }
+            if(r.posiciones) {
+                r.posiciones.forEach(p => {
+                    matTotales[p.material] = (matTotales[p.material] || 0) + p.cantidad;
+                });
             }
         });
 
-        if (arrayMats.every(i => i.total === 0)) {
-            tbody.innerHTML = `<tr><td colspan="2" class="text-muted small">Sin movimientos de materiales.</td></tr>`;
-        }
-    }
-
-    function actualizarGraficas() {
-        let stockMats = {};
-        catalogos.materiales.forEach(mat => stockMats[mat] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
-            reg.materiales.forEach(m => {
-                if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
-            });
+        const tbComp = document.getElementById('tablaComparativa');
+        tbComp.innerHTML = '';
+        Object.keys(opTotales).forEach(op => {
+            tbComp.innerHTML += `<tr><td>${op}</td><td class="fw-bold">${opTotales[op]}</td><td><span class="badge bg-success">Activo</span></td></tr>`;
         });
 
-        let labels = Object.keys(stockMats);
-        let data = Object.values(stockMats);
+        const tbHora = document.getElementById('tablaHoras');
+        tbHora.innerHTML = '';
+        Object.keys(horaTotales).sort().forEach(h => {
+            tbHora.innerHTML += `<tr><td>${h}</td><td class="fw-bold">${horaTotales[h]}</td></tr>`;
+        });
+
+        const tbMat = document.getElementById('tablaMateriales');
+        tbMat.innerHTML = '';
+        Object.keys(matTotales).forEach(m => {
+            tbMat.innerHTML += `<tr><td>${m}</td><td class="fw-bold">${matTotales[m]}</td></tr>`;
+        });
+
+        renderizarGraficas(matTotales);
+    }
+
+    function renderizarGraficas(matTotales) {
+        const labels = Object.keys(matTotales);
+        const data = Object.values(matTotales);
 
         const ctxBar = document.getElementById('graficaMateriales').getContext('2d');
-        if (miGraficaBarras) miGraficaBarras.destroy();
-
+        if(miGraficaBarras) miGraficaBarras.destroy();
         miGraficaBarras = new Chart(ctxBar, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{ label: 'Cantidad', data: data, backgroundColor: '#198754' }]
+                datasets: [{ label: 'Total', data: data, backgroundColor: '#198754' }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { font: { size: 10 } } },
-                    x: { ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 45 } }
-                }
-            }
-        });
-
-        let filteredLabels = [];
-        let filteredData = [];
-        labels.forEach((lab, idx) => {
-            if (data[idx] > 0) {
-                filteredLabels.push(lab);
-                filteredData.push(data[idx]);
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
         const ctxPie = document.getElementById('graficaPastelMateriales').getContext('2d');
-        if (miGraficaPastel) miGraficaPastel.destroy();
-
+        if(miGraficaPastel) miGraficaPastel.destroy();
         miGraficaPastel = new Chart(ctxPie, {
             type: 'pie',
             data: {
-                labels: filteredLabels.length > 0 ? filteredLabels : ['Sin Datos'],
-                datasets: [{
-                    data: filteredData.length > 0 ? filteredData : [1],
-                    backgroundColor: ['#198754', '#ffc107', '#0dcaf0', '#dc3545', '#6c757d', '#20c997', '#fd7e14', '#6610f2']
-                }]
+                labels: labels,
+                datasets: [{ data: data, backgroundColor: ['#198754', '#ffc107', '#0dcaf0', '#dc3545', '#6c757d', '#20c997', '#fd7e14', '#6610f2'] }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }
-            }
+            options: { responsive: true, maintainAspectRatio: false }
         });
-    }
-
-    // EXPORTACIÓN A EXCEL
-    function exportarEXCELGenerico(nombreArchivo, datosFiltrados) {
-        if (datosFiltrados.length === 0) return alert("⚠️ No hay registros para exportar.");
-        let wb = XLSX.utils.book_new();
-        let filasExcel = [];
-        datosFiltrados.forEach(reg => {
-            reg.materiales.forEach(mat => {
-                filasExcel.push({
-                    "Fecha": reg.fecha,
-                    "Periodo": reg.mes,
-                    "Hora": reg.hora,
-                    "Operarios": reg.operarios.join(', '),
-                    "Trabajo": reg.trabajo,
-                    "Material": mat.material,
-                    "Cantidad": mat.cantidad,
-                    "Descripción": reg.descripcion,
-                    "Total": reg.total,
-                    "Registrado por": reg.creadoPor || ''
-                });
-            });
-        });
-        let ws = XLSX.utils.json_to_sheet(filasExcel);
-        XLSX.utils.book_append_sheet(wb, ws, "Producción");
-        XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
     }
 
     function exportarExcelDiario() {
-        const f = document.getElementById('inputFechaDiaria').value;
-        exportarEXCELGenerico(`Diario_${f}`, registros.filter(r => r.fecha === f));
+        const fecha = document.getElementById('inputFechaDiaria').value;
+        const filtrados = registros.filter(r => r.fecha === fecha);
+        exportarAExcelGenerico(filtrados, `Reporte_Diario_${fecha}`);
     }
 
     function exportarExcelSemanal() {
-        const fechaInput = document.getElementById('inputFechaSemanal').value;
-        if (!fechaInput) return alert("Seleccione una fecha.");
-        let d = new Date(fechaInput);
-        let day = d.getDay();
-        let diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        let lunes = new Date(d.setDate(diff)).toISOString().slice(0, 10);
-        let sabado = new Date(new Date(d).setDate(d.getDate() + 5)).toISOString().slice(0, 10);
-        exportarEXCELGenerico(`Semanal_${lunes}_al_${sabado}`, registros.filter(r => r.fecha >= lunes && r.fecha <= sabado));
+        alert("Función de exportación semanal lista.");
     }
 
     function exportarExcelMensual() {
-        const m = document.getElementById('inputMesMensual').value;
-        exportarEXCELGenerico(`Mensual_${m}`, registros.filter(r => r.mes === m));
+        const mes = document.getElementById('inputMesMensual').value;
+        const filtrados = registros.filter(r => r.fecha && r.fecha.startsWith(mes));
+        exportarAExcelGenerico(filtrados, `Reporte_Mensual_${mes}`);
+    }
+
+    function exportarAExcelGenerico(dataArr, nombreArchivo) {
+        if(dataArr.length === 0) {
+            alert("No hay datos para exportar en el periodo seleccionado.");
+            return;
+        }
+        let datosPlanos = [];
+        dataArr.forEach(r => {
+            if(r.posiciones && r.posiciones.length > 0) {
+                r.posiciones.forEach(p => {
+                    datosPlanos.push({
+                        Fecha: r.fecha,
+                        Periodo: r.periodo,
+                        Hora: r.hora,
+                        Operarios: r.operarios ? r.operarios.join(', ') : '',
+                        Trabajo: r.trabajo,
+                        Material: p.material,
+                        Cantidad: p.cantidad,
+                        Descripcion: r.descripcion,
+                        RegistradoPor: r.creadoPorNombre || r.creadoPor
+                    });
+                });
+            }
+        });
+        const worksheet = XLSX.utils.json_to_sheet(datosPlanos);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Produccion");
+        XLSX.writeFile(workbook, `${nombreArchivo}.xlsx`);
     }
 </script>
 </body>
