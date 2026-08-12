@@ -419,44 +419,49 @@
     const auth = firebase.auth();
 
     // ==========================================
-    // La verificación de usuario/contraseña ahora vive en un
-    // servidor (función en Vercel), no aquí. Este archivo ya no
-    // contiene ninguna contraseña.
+    // USUARIOS DEL SISTEMA (MULTIUSUARIO)
+    // Edita este listado para cambiar los 6 encargados,
+    // sus usuarios y contraseñas de acceso.
     // ==========================================
-    const URL_FUNCION_LOGIN = "https://ecicladora-login-api.vercel.app/api/login";
+    const usuariosValidos = [
+        { user: "RECI 1", pass: "LR001", nombre: "Encargado 1", esMaestro: false },
+        { user: "RECI 2", pass: "LR002", nombre: "Encargado 2", esMaestro: false },
+        { user: "RECI 3", pass: "LR003", nombre: "Encargado 3", esMaestro: false },
+        { user: "RECI 4", pass: "LR004", nombre: "Encargado 4", esMaestro: false },
+        { user: "RECI 5", pass: "LR005", nombre: "Encargado 5", esMaestro: false },
+        { user: "RECI 6", pass: "LR006", nombre: "Encargado 6", esMaestro: false },
+        // Usuario maestro: único que puede ver el Panel de Actividad por Encargado.
+        // Cambia el usuario/contraseña por unos que solo tú conozcas.
+        { user: "MAESTRO", pass: "MASTER2026", nombre: "Supervisor General", esMaestro: true }
+    ];
 
     // SISTEMA DE AUTENTICACIÓN
     function handleLogin(e) {
         e.preventDefault();
         const user = document.getElementById('userInput').value.trim().toUpperCase();
         const pass = document.getElementById('passInput').value;
-        const btn = e.target.querySelector('button[type="submit"]');
-        if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
 
-        fetch(URL_FUNCION_LOGIN, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usuario: user, contrasena: pass })
-        })
-        .then(r => r.json().then(data => ({ ok: r.ok, data })))
-        .then(({ ok, data }) => {
-            if (!ok) {
-                document.getElementById('loginError').classList.remove('d-none');
-                if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
-                return;
-            }
-            return auth.signInWithCustomToken(data.token).then(() => {
+        const encontrado = usuariosValidos.find(u => u.user === user && u.pass === pass);
+
+        if (encontrado) {
+            const btn = e.target.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
+
+            // Autenticación anónima con Firebase: necesaria para que las reglas
+            // de seguridad de Firestore solo permitan acceso a quien entró por la app.
+            auth.signInAnonymously().then(() => {
                 sessionStorage.setItem('sap_logged_in', 'true');
-                sessionStorage.setItem('sap_user', user);
-                sessionStorage.setItem('sap_user_nombre', data.nombre);
-                sessionStorage.setItem('sap_es_maestro', data.esMaestro ? 'true' : 'false');
+                sessionStorage.setItem('sap_user', encontrado.user);
+                sessionStorage.setItem('sap_user_nombre', encontrado.nombre);
+                sessionStorage.setItem('sap_es_maestro', encontrado.esMaestro ? 'true' : 'false');
                 mostrarApp();
+            }).catch((error) => {
+                if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
+                alert("Error de conexión con la nube: " + error.message);
             });
-        })
-        .catch((error) => {
-            if (btn) { btn.disabled = false; btn.innerText = 'Iniciar Sesión ➔'; }
-            alert("Error de conexión: " + error.message);
-        });
+        } else {
+            document.getElementById('loginError').classList.remove('d-none');
+        }
     }
 
     function mostrarApp() {
@@ -492,11 +497,11 @@
                 if (user) {
                     mostrarApp();
                 } else {
-                    // La sesión de Firebase se perdió (ej. caché borrada). Con cuentas
-                    // reales no se puede re-autenticar sin la contraseña, así que
-                    // simplemente se regresa a la pantalla de login.
-                    sessionStorage.clear();
-                    location.reload();
+                    // La sesión de Firebase se perdió (ej. caché borrada): re-autentica antes de continuar.
+                    auth.signInAnonymously().then(mostrarApp).catch(() => {
+                        sessionStorage.clear();
+                        location.reload();
+                    });
                 }
             }
         });
@@ -540,25 +545,15 @@
             agregarFilaMaterial();
         }
 
-        // Pinta de inmediato con los catálogos locales por defecto, para que
-        // el usuario vea algo aunque Firestore tarde o falle.
-        actualizarSelects();
-
         // ESCUCHADORES EN TIEMPO REAL DE FIREBASE (ONSNAPSHOT)
         // Todos los encargados que ingresen ven los mismos datos al instante.
         db.collection("configuracion").doc("catalogos").onSnapshot((doc) => {
             if (doc.exists) {
                 catalogos = doc.data();
             } else {
-                db.collection("configuracion").doc("catalogos").set(catalogos).catch((error) => {
-                    console.error("Error creando catálogos en Firestore:", error);
-                    alert("⚠️ No se pudo crear el catálogo en la nube: " + error.message);
-                });
+                db.collection("configuracion").doc("catalogos").set(catalogos);
             }
             actualizarSelects();
-        }, (error) => {
-            console.error("Error leyendo catálogos de Firestore:", error);
-            alert("⚠️ No se pudo conectar a la nube para cargar Operarios/Trabajos/Materiales.\n\nMotivo: " + error.message + "\n\nSe están mostrando los valores por defecto guardados localmente. Revisa las reglas de seguridad de Firestore o tu conexión.");
         });
 
         db.collection("registros_produccion").onSnapshot((querySnapshot) => {
@@ -567,9 +562,6 @@
                 registros.push({ idDoc: doc.id, ...doc.data() });
             });
             renderizarTodo();
-        }, (error) => {
-            console.error("Error leyendo registros de Firestore:", error);
-            alert("⚠️ No se pudo conectar a la nube para cargar los registros de producción.\n\nMotivo: " + error.message);
         });
     }
 
