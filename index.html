@@ -48,16 +48,15 @@
             border-radius: 4px;
             padding: 8px;
         }
-        .panel-encargado {
+        .panel-encargado, .panel-hora {
             transition: transform 0.15s ease;
         }
-        .panel-encargado:hover {
+        .panel-encargado:hover, .panel-hora:hover {
             transform: translateY(-2px);
         }
     </style>
 </head>
 <body>
-
 <!-- PANTALLA DE LOGIN -->
 <div id="loginScreen" class="login-card">
     <div class="login-header">
@@ -95,7 +94,6 @@
         </form>
     </div>
 </div>
-
 <!-- APLICACIÓN PRINCIPAL -->
 <div id="appContainer" class="d-none w-100 h-100 flex-column" style="background-color: #e9ecef; overflow-y: auto;">
     
@@ -110,7 +108,6 @@
             <button class="btn btn-sm btn-outline-light ms-2 py-0 px-2" onclick="cerrarSesion()">Cerrar Sesión 🚪</button>
         </div>
     </div>
-
     <!-- Barra de Herramientas -->
     <div class="sap-toolbar d-flex justify-content-between align-items-center bg-light border-bottom p-2 px-3">
         <div>
@@ -119,12 +116,10 @@
             <button class="btn btn-sm btn-outline-danger me-1" onclick="verificarYResetearDatos()">⚠️ Resetear Base de Datos</button>
         </div>
         <div>
-            <span class="badge bg-success">🟢 Conectado a la Nube (Multiusuario)</span>
+            <span class="badge bg-success">🟢 Conectado a la Nube (Seguro contra borrados)</span>
         </div>
     </div>
-
     <div class="container-fluid my-3">
-
         <!-- VENTANA 0: PANEL POR ENCARGADO -->
         <div id="ventanaPanelEncargados" class="sap-window bg-white border mb-3 rounded shadow-sm d-none">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
@@ -135,7 +130,6 @@
                 <div class="row g-2" id="panelEncargados"></div>
             </div>
         </div>
-
         <!-- VENTANA 1: CONFIGURACIÓN DE MAESTROS -->
         <div id="ventanaMaestros" class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
@@ -171,7 +165,6 @@
                 </div>
             </div>
         </div>
-
         <!-- VENTANA 2: REGISTRO DE MOVIMIENTOS -->
         <div id="ventanaRegistro" class="sap-window bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between">
@@ -209,26 +202,22 @@
                         <label class="form-label fw-bold small">Clase de Trabajo</label>
                         <select id="selectTrabajos" class="form-select form-select-sm" required></select>
                     </div>
-
                     <div class="col-12">
                         <label class="form-label fw-bold text-success small">Posiciones de Materiales y Cantidades</label>
                         <div id="contenedorMaterialesDinamicos" class="border p-2 rounded bg-light"></div>
                         <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="agregarFilaMaterial()">➕ Añadir Posición de Material</button>
                     </div>
-
                     <div class="col-12">
                         <label class="form-label fw-bold small">Texto Breve / Descripción de la Operación</label>
                         <textarea id="descripcionRegistro" class="form-control form-control-sm" rows="2" placeholder="Notas del lote..."></textarea>
                     </div>
-
                     <div class="col-12 text-end">
                         <button type="submit" class="btn btn-success btn-sm px-4">💾 Contabilizar a la Nube</button>
                     </div>
                 </form>
             </div>
         </div>
-
-        <!-- VENTANA 3: REPORTES Y EXCEL (EXPORTA EXACTAMENTE LO FILTRADO EN PANTALLA) -->
+        <!-- VENTANA 3: REPORTES Y EXCEL -->
         <div class="sap-window border-success bg-white border mb-3 rounded shadow-sm">
             <div class="sap-window-header bg-success text-white p-2 fw-bold border-bottom d-flex justify-content-between">
                 <span>📥 Reportes Logísticos y Descargas (Excel con Pestaña de Resumen y Operaciones)</span>
@@ -257,16 +246,15 @@
                     <div class="col-md-4">
                         <div class="p-3 border rounded bg-light h-100 d-flex flex-column justify-content-between">
                             <div>
-                                <h6 class="fw-bold">Reporte Mensual Completo</h6>
+                                <h6 class="fw-bold">Reporte Mensual Completo (Histórico en Nube)</h6>
                                 <input type="month" id="inputMesMensual" class="form-control form-control-sm mb-2">
                             </div>
-                            <button onclick="exportarExcelMensual()" class="btn btn-dark btn-sm w-100">📥 Exportar Mensual Filtrado</button>
+                            <button onclick="exportarExcelMensual()" class="btn btn-dark btn-sm w-100">📥 Exportar Mensual de la Nube</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
         <!-- VENTANA 4: ANALÍTICA Y RENDIMIENTO -->
         <div class="row">
             <div class="col-md-6 mb-3">
@@ -291,11 +279,11 @@
                     </div>
                 </div>
             </div>
-
             <div class="col-md-6 mb-3">
                 <div class="sap-window bg-white border h-100 rounded shadow-sm">
-                    <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom">
+                    <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom d-flex justify-content-between align-items-center">
                         <span>⏱️ Carga de Producción por Hora</span>
+                        <span id="lblFiltroHoraActivo" class="badge bg-warning text-dark d-none" style="cursor:pointer;" onclick="seleccionarHora(null)">Filtrando por hora (Clic para quitar) ✕</span>
                     </div>
                     <div class="p-3">
                         <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
@@ -313,7 +301,6 @@
                 </div>
             </div>
         </div>
-
         <!-- VENTANA 5: MATERIALES Y GRÁFICAS -->
         <div class="row">
             <div class="col-md-4 mb-3">
@@ -336,7 +323,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="col-md-4 mb-3">
                 <div class="sap-window bg-white border h-100 rounded shadow-sm">
                     <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom">
@@ -347,7 +333,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="col-md-4 mb-3">
                 <div class="sap-window bg-white border h-100 rounded shadow-sm">
                     <div class="sap-window-header bg-light p-2 fw-bold text-success border-bottom">
@@ -359,11 +344,10 @@
                 </div>
             </div>
         </div>
-
         <!-- VENTANA 6: VISOR DE BASE DE DATOS GENERAL -->
         <div class="sap-window bg-white border rounded shadow-sm mb-4">
             <div class="sap-window-header bg-dark text-white p-2 fw-bold border-bottom">
-                <span>🗄️ Visor de Base de Datos General (Sincronizado)</span>
+                <span>🗄️ Visor de Base de Datos General (Sincronizado y Seguro)</span>
             </div>
             <div class="p-3">
                 <div class="table-responsive">
@@ -387,21 +371,17 @@
                 </div>
             </div>
         </div>
-
     </div>
 </div>
-
 <!-- Scripts necesarios -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
 <!-- Firebase SDKs (Compat Version) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
 <script>
     // ==========================================
     // CONFIGURACIÓN DE FIREBASE
@@ -414,11 +394,9 @@
         messagingSenderId: "719606910471",
         appId: "1:719606910471:web:3abbfd863e880b1a7d64a2"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
-
     // ==========================================
     // USUARIOS DEL SISTEMA (MULTIUSUARIO)
     // ==========================================
@@ -431,19 +409,15 @@
         { user: "RECI 6", pass: "LR006", nombre: "Encargado 6", esMaestro: false },
         { user: "MAESTRO", pass: "MASTER2026", nombre: "Supervisor General", esMaestro: true }
     ];
-
     // SISTEMA DE AUTENTICACIÓN
     function handleLogin(e) {
         e.preventDefault();
         const user = document.getElementById('userInput').value.trim().toUpperCase();
         const pass = document.getElementById('passInput').value;
-
         const encontrado = usuariosValidos.find(u => u.user === user && u.pass === pass);
-
         if (encontrado) {
             const btn = e.target.querySelector('button[type="submit"]');
             if (btn) { btn.disabled = true; btn.innerText = 'Conectando...'; }
-
             auth.signInAnonymously().then(() => {
                 sessionStorage.setItem('sap_logged_in', 'true');
                 sessionStorage.setItem('sap_user', encontrado.user);
@@ -458,22 +432,18 @@
             document.getElementById('loginError').classList.remove('d-none');
         }
     }
-
     function mostrarApp() {
         document.getElementById('loginScreen').classList.add('d-none');
         const app = document.getElementById('appContainer');
         app.classList.remove('d-none');
         app.classList.add('d-flex');
         document.getElementById('lblUsuarioLogueado').innerText = "Usuario: " + sessionStorage.getItem('sap_user_nombre');
-
         const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
         document.getElementById('ventanaPanelEncargados').classList.toggle('d-none', !esMaestro);
         document.getElementById('ventanaMaestros').classList.toggle('d-none', esMaestro);
         document.getElementById('ventanaRegistro').classList.toggle('d-none', esMaestro);
-
         initSistema();
     }
-
     function cerrarSesion() {
         sessionStorage.removeItem('sap_logged_in');
         sessionStorage.removeItem('sap_user');
@@ -481,7 +451,6 @@
         sessionStorage.removeItem('sap_es_maestro');
         auth.signOut().finally(() => location.reload());
     }
-
     window.onload = function() {
         auth.onAuthStateChanged((user) => {
             if (sessionStorage.getItem('sap_logged_in') === 'true') {
@@ -496,7 +465,6 @@
             }
         });
     };
-
     let catalogos = {
         operarios: ["BRICEIDI", "MARIA", "JUAN", "ALIOSKA", "WALTER", "RANDOLFO"],
         trabajos: ["PROYECTOS", "COMPACTADOS", "PREPARANDO MATERIAL", "LIMPIANDO", "CORTANDO", "OTROS"],
@@ -506,32 +474,44 @@
     let miGraficaBarras = null;
     let miGraficaPastel = null;
     let filtroEncargadoActivo = null;
+    let filtroHoraActivo = null; // ⏱️ Nuevo filtro por hora
 
     function obtenerRegistrosVista() {
+        let res = registros;
         if (filtroEncargadoActivo) {
-            return registros.filter(r => r.creadoPor === filtroEncargadoActivo);
+            res = res.filter(r => r.creadoPor === filtroEncargadoActivo);
         }
-        return registros;
+        if (filtroHoraActivo) {
+            res = res.filter(r => r.hora === filtroHoraActivo);
+        }
+        return res;
     }
-
     function seleccionarEncargado(nombre) {
         const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
         if (!esMaestro) return;
         filtroEncargadoActivo = (filtroEncargadoActivo === nombre) ? null : nombre;
         renderizarTodo();
     }
-
+    function seleccionarHora(hora) {
+        filtroHoraActivo = (filtroHoraActivo === hora) ? null : hora;
+        const lblBadge = document.getElementById('lblFiltroHoraActivo');
+        if (filtroHoraActivo) {
+            lblBadge.innerText = `Filtro: ${filtroHoraActivo} (Clic para quitar) ✕`;
+            lblBadge.classList.remove('d-none');
+        } else {
+            lblBadge.classList.add('d-none');
+        }
+        renderizarTodo();
+    }
     function initSistema() {
         const hoyStr = new Date().toISOString().slice(0, 10);
         document.getElementById('fecha').valueAsDate = new Date();
         document.getElementById('inputFechaDiaria').value = hoyStr;
         document.getElementById('inputFechaSemanal').value = hoyStr;
         document.getElementById('inputMesMensual').value = hoyStr.slice(0, 7);
-
         if(document.getElementById('contenedorMaterialesDinamicos').children.length === 0) {
             agregarFilaMaterial();
         }
-
         db.collection("configuracion").doc("catalogos").onSnapshot((doc) => {
             if (doc.exists) {
                 catalogos = doc.data();
@@ -541,15 +521,18 @@
             actualizarSelects();
         });
 
-        db.collection("registros_produccion").onSnapshot((querySnapshot) => {
+        const mesActualStr = new Date().toISOString().slice(0, 7);
+        db.collection("registros_produccion").where("mes", "==", mesActualStr).onSnapshot((querySnapshot) => {
             registros = [];
             querySnapshot.forEach((doc) => {
-                registros.push({ idDoc: doc.id, ...doc.data() });
+                let data = doc.data();
+                if (data.activo !== false) {
+                    registros.push({ idDoc: doc.id, ...data });
+                }
             });
             renderizarTodo();
         });
     }
-
     function actualizarSelects() {
         const contenedorOps = document.getElementById('contenedorOperariosCheck');
         const operariosSeleccionadosPrevios = Array.from(document.querySelectorAll('.check-operario:checked')).map(cb => cb.value);
@@ -564,15 +547,12 @@
                 </div>
             `;
         });
-
         renderizarListasEliminacionCat();
-
         const selectTrab = $('#selectTrabajos');
         const valActualTrab = selectTrab.val();
         selectTrab.empty();
         catalogos.trabajos.forEach(tr => selectTrab.append(new Option(tr, tr)));
         if(valActualTrab) selectTrab.val(valActualTrab);
-
         document.querySelectorAll('.select-material-dinamico').forEach(select => {
             const valAnt = select.value;
             select.innerHTML = '';
@@ -582,7 +562,6 @@
             if(valAnt) select.value = valAnt;
         });
     }
-
     function renderizarListasEliminacionCat() {
         const listaOps = document.getElementById('listaEliminarOperarios');
         listaOps.innerHTML = '';
@@ -594,7 +573,6 @@
                 </div>
             `;
         });
-
         const listaTrabs = document.getElementById('listaEliminarTrabajos');
         listaTrabs.innerHTML = '';
         catalogos.trabajos.forEach(tr => {
@@ -605,7 +583,6 @@
                 </div>
             `;
         });
-
         const listaMats = document.getElementById('listaEliminarMateriales');
         listaMats.innerHTML = '';
         catalogos.materiales.forEach(mat => {
@@ -617,7 +594,6 @@
             `;
         });
     }
-
     function verificarYResetearDatos() {
         const passwordInput = prompt("🔒 Ingrese la contraseña para vaciar la base de datos de la nube:");
         if (passwordInput === null) return;
@@ -632,12 +608,10 @@
             alert("❌ Contraseña incorrecta.");
         }
     }
-
     function verificarYAgregarCatalogo(tipo, inputId) {
         const val = document.getElementById(inputId).value.trim().toUpperCase();
         if (!val) return alert("Ingrese un valor válido.");
         if (catalogos[tipo].includes(val)) return alert("Este elemento ya existe.");
-
         const passwordInput = prompt(`🔒 Ingrese la contraseña para crear "${val}":`);
         if (passwordInput === "LR123") {
             catalogos[tipo].push(val);
@@ -649,7 +623,6 @@
             alert("❌ Contraseña incorrecta.");
         }
     }
-
     function verificarYBorrarCatalogo(tipo, valor) {
         const passwordInput = prompt(`🔒 Ingrese la contraseña para eliminar "${valor}":`);
         if (passwordInput === "LR123") {
@@ -662,7 +635,6 @@
             alert("❌ Contraseña incorrecta.");
         }
     }
-
     function agregarFilaMaterial(matSugerido = '', pesoSugerido = '') {
         const contenedor = document.getElementById('contenedorMaterialesDinamicos');
         const filaId = 'fila_mat_' + Date.now() + Math.random().toString(36).substr(2, 5);
@@ -672,7 +644,6 @@
             let sel = (mat === matSugerido) ? 'selected' : '';
             opcionesMat += `<option value="${mat}" ${sel}>${mat}</option>`;
         });
-
         const div = document.createElement('div');
         div.className = 'row g-2 mb-2 align-items-center fila-material';
         div.id = filaId;
@@ -689,7 +660,6 @@
         `;
         contenedor.appendChild(div);
     }
-
     document.getElementById('formProd').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -698,22 +668,18 @@
         const trabajoVal = document.getElementById('selectTrabajos').value;
         const descripcionVal = document.getElementById('descripcionRegistro').value;
         const operariosSeleccionados = Array.from(document.querySelectorAll('.check-operario:checked')).map(cb => cb.value);
-
         if (operariosSeleccionados.length === 0) return alert("Debe seleccionar al menos un operario.");
         
         const filas = document.querySelectorAll('.fila-material');
         if (filas.length === 0) return alert("Debe agregar al menos un material.");
-
         let listaMaterialesDetalle = [];
         let cantidadTotalGeneral = 0;
-
         filas.forEach(fila => {
             const mat = fila.querySelector('.select-material-dinamico').value;
             const cant = parseFloat(fila.querySelector('.peso-material-dinamico').value) || 0;
             listaMaterialesDetalle.push({ material: mat, cantidad: cant });
             cantidadTotalGeneral += cant;
         });
-
         const nuevoRegistro = {
             fecha: fechaVal,
             mes: fechaVal ? fechaVal.substring(0, 7) : '',
@@ -724,9 +690,9 @@
             descripcion: descripcionVal,
             total: cantidadTotalGeneral,
             creadoPor: sessionStorage.getItem('sap_user_nombre') || 'Desconocido',
+            activo: true,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         };
-
         db.collection("registros_produccion").add(nuevoRegistro).then(() => {
             document.getElementById('descripcionRegistro').value = '';
             document.getElementById('contenedorMaterialesDinamicos').innerHTML = '';
@@ -736,7 +702,6 @@
             alert("Error al guardar: " + error.message);
         });
     });
-
     function renderizarTodo() {
         renderizarPanelEncargados();
         renderizarTablaGeneral();
@@ -745,12 +710,10 @@
         renderizarMaterialesStock();
         actualizarGraficas();
     }
-
     function renderizarPanelEncargados() {
         const cont = document.getElementById('panelEncargados');
         cont.innerHTML = '';
         const esMaestro = sessionStorage.getItem('sap_es_maestro') === 'true';
-
         if (esMaestro) {
             cont.innerHTML += `
                 <div class="col-6 col-md-4 col-lg-2">
@@ -762,14 +725,12 @@
                 </div>
             `;
         }
-
         usuariosValidos.filter(u => !u.esMaestro).forEach(u => {
             const regsUsuario = registros.filter(r => r.creadoPor === u.nombre);
             const totalUsuario = regsUsuario.reduce((sum, r) => sum + (r.total || 0), 0);
             const cantidadRegistros = regsUsuario.length;
             const esSeleccionado = esMaestro && filtroEncargadoActivo === u.nombre;
             const esUsuarioActual = sessionStorage.getItem('sap_user_nombre') === u.nombre;
-
             cont.innerHTML += `
                 <div class="col-6 col-md-4 col-lg-2">
                     <div class="panel-encargado border rounded p-2 text-center h-100 ${esSeleccionado || esUsuarioActual ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}" ${esMaestro ? `style="cursor:pointer;" onclick="seleccionarEncargado('${u.nombre}')"` : ''}>
@@ -781,23 +742,20 @@
             `;
         });
     }
-
     function renderizarTablaGeneral() {
         const tbody = document.getElementById('tablaCuerpo');
         tbody.innerHTML = '';
         const regsVista = obtenerRegistrosVista();
-
         if (regsVista.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">No hay registros de producción en la nube.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">No hay registros de producción en la nube para los filtros seleccionados.</td></tr>`;
             return;
         }
-
         const regsOrdenados = [...regsVista].sort((a, b) => b.fecha.localeCompare(a.fecha));
+        const regsPaginados = regsOrdenados.slice(0, 100);
 
-        regsOrdenados.forEach(reg => {
+        regsPaginados.forEach(reg => {
             let matTexto = reg.materiales.map(m => `• ${m.material}: <strong>${m.cantidad.toFixed(2)}</strong>`).join('<br>');
             let opsTexto = reg.operarios.join(', ');
-
             tbody.innerHTML += `
                 <tr>
                     <td>${reg.fecha}</td>
@@ -810,7 +768,7 @@
                     <td class="fw-bold text-success">${reg.total.toFixed(2)}</td>
                     <td><span class="badge bg-info text-dark">${reg.creadoPor || '—'}</span></td>
                     <td class="text-center">
-                        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="verificarYBorrarRegistro('${reg.idDoc}')">🗑️</button>
+                        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="verificarYBorrarRegistro('${reg.idDoc}')" title="Archivar de forma segura">🗑️</button>
                     </td>
                 </tr>
             `;
@@ -818,35 +776,34 @@
     }
 
     function verificarYBorrarRegistro(idDoc) {
-        const passwordInput = prompt("🔒 Ingrese la contraseña para eliminar este registro de la nube:");
+        const passwordInput = prompt("🔒 Ingrese la contraseña para archivar/anular este registro de forma segura (Los datos se conservan en la nube):");
         if (passwordInput === "LR123") {
-            db.collection("registros_produccion").doc(idDoc).delete().then(() => {
-                alert("Registro eliminado de la nube correctamente.");
+            db.collection("registros_produccion").doc(idDoc).update({
+                activo: false
+            }).then(() => {
+                alert("✅ Registro archivado de forma segura. El dato no se ha borrado de la base de datos.");
+            }).catch((error) => {
+                alert("Error al actualizar: " + error.message);
             });
         } else if (passwordInput !== null) {
             alert("❌ Contraseña incorrecta.");
         }
     }
-
     function renderizarAnalitica() {
         const tbody = document.getElementById('tablaComparativa');
         tbody.innerHTML = '';
-
         let rendimientoOps = {};
         catalogos.operarios.forEach(op => rendimientoOps[op] = 0);
-
         obtenerRegistrosVista().forEach(reg => {
             let proporcion = reg.total / reg.operarios.length;
             reg.operarios.forEach(op => {
                 if (rendimientoOps[op] !== undefined) rendimientoOps[op] += proporcion;
             });
         });
-
         let arrayOps = Object.keys(rendimientoOps).map(op => ({
             operario: op,
             total: rendimientoOps[op]
         })).sort((a, b) => b.total - a.total);
-
         arrayOps.forEach((item, index) => {
             let clasificacion = "Regular";
             let badgeClass = "bg-secondary";
@@ -857,7 +814,6 @@
                 clasificacion = "Activo";
                 badgeClass = "bg-success";
             }
-
             tbody.innerHTML += `
                 <tr>
                     <td><span class="badge bg-dark">#${index + 1}</span></td>
@@ -868,47 +824,48 @@
             `;
         });
     }
-
     function renderizarHoras() {
         const tbody = document.getElementById('tablaHoras');
         tbody.innerHTML = '';
-
         let horasMap = {};
         const horasPosibles = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
         horasPosibles.forEach(h => horasMap[h] = 0);
-
-        obtenerRegistrosVista().forEach(reg => {
+        
+        // Calculamos las horas respetando el filtro de encargado si estuviera activo
+        let regsParaHoras = registros;
+        if (filtroEncargadoActivo) {
+            regsParaHoras = regsParaHoras.filter(r => r.creadoPor === filtroEncargadoActivo);
+        }
+        
+        regsParaHoras.forEach(reg => {
             if (horasMap[reg.hora] !== undefined) horasMap[reg.hora] += reg.total;
         });
 
         horasPosibles.forEach(h => {
+            let esSeleccionado = filtroHoraActivo === h;
+            let filaBg = esSeleccionado ? 'bg-success bg-opacity-10 fw-bold' : '';
             tbody.innerHTML += `
-                <tr>
-                    <td><span class="badge bg-light text-dark border">${h}</span></td>
-                    <td class="fw-bold">${horasMap[h].toFixed(2)}</td>
+                <tr class="panel-hora ${filaBg}" style="cursor: pointer;" onclick="seleccionarHora('${h}')" title="Clic para filtrar por esta hora">
+                    <td><span class="badge ${esSeleccionado ? 'bg-success' : 'bg-light text-dark border'}">${h}</span></td>
+                    <td class="fw-bold">${horasMap[h].toFixed(2)} ${esSeleccionado ? ' 🔍' : ''}</td>
                 </tr>
             `;
         });
     }
-
     function renderizarMaterialesStock() {
         const tbody = document.getElementById('tablaMateriales');
         tbody.innerHTML = '';
-
         let stockMats = {};
         catalogos.materiales.forEach(mat => stockMats[mat] = 0);
-
         obtenerRegistrosVista().forEach(reg => {
             reg.materiales.forEach(m => {
                 if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
             });
         });
-
         let arrayMats = Object.keys(stockMats).map(mat => ({
             material: mat,
             total: stockMats[mat]
         })).sort((a, b) => b.total - a.total);
-
         arrayMats.forEach(item => {
             if (item.total > 0) {
                 tbody.innerHTML += `
@@ -919,28 +876,22 @@
                 `;
             }
         });
-
         if (arrayMats.every(i => i.total === 0)) {
             tbody.innerHTML = `<tr><td colspan="2" class="text-muted small">Sin movimientos de materiales.</td></tr>`;
         }
     }
-
     function actualizarGraficas() {
         let stockMats = {};
         catalogos.materiales.forEach(mat => stockMats[mat] = 0);
-
         obtenerRegistrosVista().forEach(reg => {
             reg.materiales.forEach(m => {
                 if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
             });
         });
-
         let labels = Object.keys(stockMats);
         let data = Object.values(stockMats);
-
         const ctxBar = document.getElementById('graficaMateriales').getContext('2d');
         if (miGraficaBarras) miGraficaBarras.destroy();
-
         miGraficaBarras = new Chart(ctxBar, {
             type: 'bar',
             data: {
@@ -957,7 +908,6 @@
                 }
             }
         });
-
         let filteredLabels = [];
         let filteredData = [];
         labels.forEach((lab, idx) => {
@@ -966,10 +916,8 @@
                 filteredData.push(data[idx]);
             }
         });
-
         const ctxPie = document.getElementById('graficaPastelMateriales').getContext('2d');
         if (miGraficaPastel) miGraficaPastel.destroy();
-
         miGraficaPastel = new Chart(ctxPie, {
             type: 'pie',
             data: {
@@ -986,19 +934,19 @@
             }
         });
     }
-
     // EXPORTACIÓN A EXCEL FILTRADA CON PESTAÑA RESUMEN DE OPERACIONES, ACUMULADOS Y PERSONAS
     function exportarEXCELGenerico(nombreArchivo, datosBaseFecha) {
         let datosFiltrados = datosBaseFecha;
         if (filtroEncargadoActivo) {
-            datosFiltrados = datosBaseFecha.filter(r => r.creadoPor === filtroEncargadoActivo);
+            datosFiltrados = datosFiltrados.filter(r => r.creadoPor === filtroEncargadoActivo);
         }
-
-        if (datosFiltrados.length === 0) return alert("⚠️ No hay registros para exportar con los filtros y fechas seleccionados.");
+        if (filtroHoraActivo) {
+            datosFiltrados = datosFiltrados.filter(r => r.hora === filtroHoraActivo);
+        }
+        if (datosFiltrados.length === 0) return alert("⚠️ No hay registros para exportar con los filtros seleccionados.");
         
         let wb = XLSX.utils.book_new();
         
-        // Pestaña 0: Resumen General (Muestra operaciones, acumulado total y personas únicas que trabajaron)
         let totalOperaciones = datosFiltrados.length;
         let acumuladoTotalGeneral = datosFiltrados.reduce((sum, r) => sum + (r.total || 0), 0);
         let personasUnicasSet = new Set();
@@ -1007,7 +955,6 @@
                 r.operarios.forEach(op => personasUnicasSet.add(op));
             }
         });
-
         let filasResumenEjecutivo = [
             { "Métrica de Producción": "Total de Operaciones Registradas", "Valor": totalOperaciones },
             { "Métrica de Producción": "Cantidad Acumulada Total", "Valor": acumuladoTotalGeneral },
@@ -1017,7 +964,6 @@
         let wsResumenEjecutivo = XLSX.utils.json_to_sheet(filasResumenEjecutivo);
         XLSX.utils.book_append_sheet(wb, wsResumenEjecutivo, "Resumen General");
 
-        // Pestaña 1: Detalle de Movimientos Filtrados
         let filasExcel = [];
         datosFiltrados.forEach(reg => {
             reg.materiales.forEach(mat => {
@@ -1038,7 +984,6 @@
         let wsDetalle = XLSX.utils.json_to_sheet(filasExcel);
         XLSX.utils.book_append_sheet(wb, wsDetalle, "Movimientos");
 
-        // Pestaña 2: Resumen / Stock Total por Material
         let stockMats = {};
         catalogos.materiales.forEach(mat => stockMats[mat] = 0);
         datosFiltrados.forEach(reg => {
@@ -1046,16 +991,13 @@
                 if (stockMats[m.material] !== undefined) stockMats[m.material] += m.cantidad;
             });
         });
-        
         let filasMateriales = Object.keys(stockMats).map(mat => ({
             "Material": mat,
             "Total Producido": stockMats[mat]
         })).filter(item => item["Total Producido"] > 0);
-        
         let wsMateriales = XLSX.utils.json_to_sheet(filasMateriales);
         XLSX.utils.book_append_sheet(wb, wsMateriales, "Resumen Materiales");
 
-        // Pestaña 3: Ranking de Operarios
         let rendimientoOps = {};
         catalogos.operarios.forEach(op => rendimientoOps[op] = 0);
         datosFiltrados.forEach(reg => {
@@ -1064,29 +1006,23 @@
                 if (rendimientoOps[op] !== undefined) rendimientoOps[op] += proporcion;
             });
         });
-
         let filasOperarios = Object.keys(rendimientoOps).map((op) => ({
             "Operario": op,
             "Total Producido": rendimientoOps[op]
         })).sort((a, b) => b["Total Producido"] - a["Total Producido"]);
-
         filasOperarios.forEach((item, index) => {
             item["Posición"] = `#${index + 1}`;
             item["Clasificación"] = (index === 0 && item["Total Producido"] > 0) ? "🌟 Líder de Producción" : (item["Total Producido"] > 0 ? "Activo" : "Sin actividad");
         });
-
         let wsOperarios = XLSX.utils.json_to_sheet(filasOperarios);
         XLSX.utils.book_append_sheet(wb, wsOperarios, "Ranking Operarios");
-
         XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
     }
-
     function exportarExcelDiario() {
         const f = document.getElementById('inputFechaDiaria').value;
-        const sufijo = filtroEncargadoActivo ? `_${filtroEncargadoActivo}` : '_Global';
-        exportarEXCELGenerico(`Diario_${f}${sufijo}`, registros.filter(r => r.fecha === f));
+        const sufijo = (filtroEncargadoActivo ? `_${filtroEncargadoActivo}` : '') + (filtroHoraActivo ? `_${filtroHoraActivo.replace(':','')}` : '');
+        exportarEXCELGenerico(`Diario_${f}${sufijo || '_Global'}`, registros.filter(r => r.fecha === f && r.activo !== false));
     }
-
     function exportarExcelSemanal() {
         const fechaInput = document.getElementById('inputFechaSemanal').value;
         if (!fechaInput) return alert("Seleccione una fecha.");
@@ -1095,14 +1031,41 @@
         let diff = d.getDate() - day + (day === 0 ? -6 : 1);
         let lunes = new Date(d.setDate(diff)).toISOString().slice(0, 10);
         let sabado = new Date(new Date(d).setDate(d.getDate() + 5)).toISOString().slice(0, 10);
-        const sufijo = filtroEncargadoActivo ? `_${filtroEncargadoActivo}` : '_Global';
-        exportarEXCELGenerico(`Semanal_${lunes}_al_${sabado}${sufijo}`, registros.filter(r => r.fecha >= lunes && r.fecha <= sabado));
+        const sufijo = (filtroEncargadoActivo ? `_${filtroEncargadoActivo}` : '') + (filtroHoraActivo ? `_${filtroHoraActivo.replace(':','')}` : '');
+        exportarEXCELGenerico(`Semanal_${lunes}_al_${sabado}${sufijo || '_Global'}`, registros.filter(r => r.fecha >= lunes && r.fecha <= sabado && r.activo !== false));
     }
-
     function exportarExcelMensual() {
         const m = document.getElementById('inputMesMensual').value;
-        const sufijo = filtroEncargadoActivo ? `_${filtroEncargadoActivo}` : '_Global';
-        exportarEXCELGenerico(`Mensual_${m}${sufijo}`, registros.filter(r => r.mes === m));
+        if (!m) return alert("Seleccione un mes para el reporte.");
+        
+        const btnAccion = event.target;
+        const textoOriginal = btnAccion.innerText;
+        btnAccion.disabled = true;
+        btnAccion.innerText = 'Consultando Nube...';
+
+        db.collection("registros_produccion").where("mes", "==", m).get().then((querySnapshot) => {
+            let registrosMes = [];
+            querySnapshot.forEach((doc) => {
+                let data = doc.data();
+                if (data.activo !== false) {
+                    registrosMes.push({ idDoc: doc.id, ...data });
+                }
+            });
+
+            btnAccion.disabled = false;
+            btnAccion.innerText = textoOriginal;
+
+            if (registrosMes.length === 0) {
+                return alert(`⚠️ No hay registros activos en la nube para el mes ${m}.`);
+            }
+
+            const sufijo = (filtroEncargadoActivo ? `_${filtroEncargadoActivo}` : '') + (filtroHoraActivo ? `_${filtroHoraActivo.replace(':','')}` : '');
+            exportarEXCELGenerico(`Mensual_${m}${sufijo || '_Global'}`, registrosMes);
+        }).catch((error) => {
+            btnAccion.disabled = false;
+            btnAccion.innerText = textoOriginal;
+            alert("Error al consultar el mes histórico: " + error.message);
+        });
     }
 </script>
 </body>
