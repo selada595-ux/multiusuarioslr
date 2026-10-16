@@ -178,21 +178,12 @@
                         <input type="date" id="fecha" class="form-control form-control-sm" required>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-bold small">Hora de Turno</label>
-                        <select id="hora" class="form-select form-select-sm" required>
-                            <option value="07:00">07:00 AM</option>
-                            <option value="08:00">08:00 AM</option>
-                            <option value="09:00">09:00 AM</option>
-                            <option value="10:00">10:00 AM</option>
-                            <option value="11:00">11:00 AM</option>
-                            <option value="12:00">12:00 PM</option>
-                            <option value="13:00">01:00 PM</option>
-                            <option value="14:00">02:00 PM</option>
-                            <option value="15:00">03:00 PM</option>
-                            <option value="16:00">04:00 PM</option>
-                            <option value="17:00">05:00 PM</option>
-                            <option value="18:00">06:00 PM</option>
-                        </select>
+                        <label class="form-label fw-bold small">Horario (Desde – Hasta)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="time" id="horaInicio" class="form-control" value="07:00" required>
+                            <span class="input-group-text">a</span>
+                            <input type="time" id="horaFin" class="form-control" value="08:00" required>
+                        </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold small">Operario(s) Responsable(s)</label>
@@ -356,7 +347,7 @@
                             <tr>
                                 <th>Fecha</th>
                                 <th>Periodo</th>
-                                <th>Hora</th>
+                                <th>Horario</th>
                                 <th>Operario(s)</th>
                                 <th>Trabajo</th>
                                 <th>Materiales / Posiciones</th>
@@ -384,7 +375,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script>
     // ==========================================
-    // CONFIGURACIÓN DE FIREBASE
+    // CONFIGURACIÓN DE FIREBASE (SIN CAMBIOS)
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyB675pKmroUQx8dfIhiJE97eFIPqgaIGhE",
@@ -474,7 +465,35 @@
     let miGraficaBarras = null;
     let miGraficaPastel = null;
     let filtroEncargadoActivo = null;
-    let filtroHoraActivo = null; // ⏱️ Nuevo filtro por hora
+    let filtroHoraActivo = null;
+
+    // ==========================================
+    // UTILIDADES DE HORARIO (Desde - Hasta)
+    // ==========================================
+    function aMinutos(t) {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    }
+    // Compatible con registros viejos (que solo tienen "hora": "07:00")
+    function obtenerRango(reg) {
+        if (reg.horaInicio && reg.horaFin) return [aMinutos(reg.horaInicio), aMinutos(reg.horaFin)];
+        if (reg.hora && /^\d{2}:\d{2}$/.test(reg.hora)) {
+            const i = aMinutos(reg.hora);
+            return [i, i + 60];
+        }
+        return null;
+    }
+    function textoHorario(reg) {
+        if (reg.horaInicio && reg.horaFin) return `${reg.horaInicio} - ${reg.horaFin}`;
+        return reg.hora || '—';
+    }
+    // ¿El registro cae dentro de la franja de una hora (ej. "09:00")?
+    function registroTocaHora(reg, h) {
+        const r = obtenerRango(reg);
+        if (!r) return false;
+        const ini = aMinutos(h);
+        return r[0] < ini + 60 && r[1] > ini;
+    }
 
     function obtenerRegistrosVista() {
         let res = registros;
@@ -482,7 +501,7 @@
             res = res.filter(r => r.creadoPor === filtroEncargadoActivo);
         }
         if (filtroHoraActivo) {
-            res = res.filter(r => r.hora === filtroHoraActivo);
+            res = res.filter(r => registroTocaHora(r, filtroHoraActivo));
         }
         return res;
     }
@@ -664,10 +683,14 @@
         e.preventDefault();
         
         const fechaVal = document.getElementById('fecha').value;
-        const horaVal = document.getElementById('hora').value;
+        const horaInicioVal = document.getElementById('horaInicio').value;
+        const horaFinVal = document.getElementById('horaFin').value;
         const trabajoVal = document.getElementById('selectTrabajos').value;
         const descripcionVal = document.getElementById('descripcionRegistro').value;
         const operariosSeleccionados = Array.from(document.querySelectorAll('.check-operario:checked')).map(cb => cb.value);
+
+        if (!horaInicioVal || !horaFinVal) return alert("Debe indicar la hora de inicio y la hora final.");
+        if (aMinutos(horaFinVal) <= aMinutos(horaInicioVal)) return alert("La hora final debe ser mayor que la hora de inicio.");
         if (operariosSeleccionados.length === 0) return alert("Debe seleccionar al menos un operario.");
         
         const filas = document.querySelectorAll('.fila-material');
@@ -680,10 +703,14 @@
             listaMaterialesDetalle.push({ material: mat, cantidad: cant });
             cantidadTotalGeneral += cant;
         });
+        // Misma estructura de siempre: "hora" se mantiene con el mismo formato ("HH:MM").
+        // Solo se agregan dos campos nuevos opcionales: horaInicio y horaFin.
         const nuevoRegistro = {
             fecha: fechaVal,
             mes: fechaVal ? fechaVal.substring(0, 7) : '',
-            hora: horaVal,
+            hora: horaInicioVal,
+            horaInicio: horaInicioVal,
+            horaFin: horaFinVal,
             operarios: operariosSeleccionados,
             trabajo: trabajoVal,
             materiales: listaMaterialesDetalle,
@@ -760,7 +787,7 @@
                 <tr>
                     <td>${reg.fecha}</td>
                     <td><span class="badge bg-secondary">${reg.mes}</span></td>
-                    <td>${reg.hora}</td>
+                    <td>${textoHorario(reg)}</td>
                     <td><span class="badge bg-success">${opsTexto}</span></td>
                     <td><span class="fw-bold text-primary">${reg.trabajo}</span></td>
                     <td style="font-size: 0.8rem;">${matTexto}</td>
@@ -824,21 +851,31 @@
             `;
         });
     }
+    // Reparte la producción de cada registro proporcionalmente entre las franjas
+    // de hora que cubre (ej. 07:00 a 09:15 => 07, 08 y 09).
     function renderizarHoras() {
         const tbody = document.getElementById('tablaHoras');
         tbody.innerHTML = '';
         let horasMap = {};
-        const horasPosibles = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
+        const horasPosibles = [];
+        for (let i = 5; i <= 22; i++) horasPosibles.push(String(i).padStart(2, '0') + ':00');
         horasPosibles.forEach(h => horasMap[h] = 0);
-        
-        // Calculamos las horas respetando el filtro de encargado si estuviera activo
+
         let regsParaHoras = registros;
         if (filtroEncargadoActivo) {
             regsParaHoras = regsParaHoras.filter(r => r.creadoPor === filtroEncargadoActivo);
         }
-        
+
         regsParaHoras.forEach(reg => {
-            if (horasMap[reg.hora] !== undefined) horasMap[reg.hora] += reg.total;
+            const rango = obtenerRango(reg);
+            if (!rango) return;
+            const duracion = rango[1] - rango[0];
+            if (duracion <= 0) return;
+            horasPosibles.forEach(h => {
+                const ini = aMinutos(h);
+                const solape = Math.min(rango[1], ini + 60) - Math.max(rango[0], ini);
+                if (solape > 0) horasMap[h] += (reg.total || 0) * (solape / duracion);
+            });
         });
 
         horasPosibles.forEach(h => {
@@ -941,7 +978,7 @@
             datosFiltrados = datosFiltrados.filter(r => r.creadoPor === filtroEncargadoActivo);
         }
         if (filtroHoraActivo) {
-            datosFiltrados = datosFiltrados.filter(r => r.hora === filtroHoraActivo);
+            datosFiltrados = datosFiltrados.filter(r => registroTocaHora(r, filtroHoraActivo));
         }
         if (datosFiltrados.length === 0) return alert("⚠️ No hay registros para exportar con los filtros seleccionados.");
         
@@ -966,11 +1003,16 @@
 
         let filasExcel = [];
         datosFiltrados.forEach(reg => {
+            const rango = obtenerRango(reg);
+            const minAHora = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+            const horaIni = reg.horaInicio || reg.hora || '';
+            const horaFin = reg.horaFin || (rango ? minAHora(rango[1]) : '');
             reg.materiales.forEach(mat => {
                 filasExcel.push({
                     "Fecha": reg.fecha,
                     "Periodo": reg.mes,
-                    "Hora": reg.hora,
+                    "Hora Inicio": horaIni,
+                    "Hora Fin": horaFin,
                     "Operarios": reg.operarios.join(', '),
                     "Trabajo": reg.trabajo,
                     "Material": mat.material,
